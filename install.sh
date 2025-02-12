@@ -50,7 +50,7 @@ echo "[~] Redefine hostname ip"
 ip=$(ip a | grep "inet " | grep -v 127.0.0.1 | awk '{print($2)}' | cut -d'/' -f1)
 sudo cp /etc/hosts /etc/hosts.bck
 sudo sed -i -e "s/127.0.1.1/$ip/g" /etc/hosts
-if [[ $(hostname --ip-address) -ne $ip ]]; then
+if [[ "$(hostname --ip-address)" -ne "$ip" ]]; then
     echo "[-] Failed to change hostname ip to $ip"
     sudo mv /etc/hosts.bck /etc/hosts
     exit 1
@@ -60,9 +60,9 @@ echo "[+] Hostname ip setted to $ip"
 
 ## Add proxmox VE repo
 echo "[~] Adding proxmox VE repo"
-sudo echo "deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription" > /etc/apt/sources.list.d/pve-install-repo.list
+echo "deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription" | sudo tee /etc/apt/sources.list.d/pve-install-repo.list > /dev/null
 wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -O ~/proxmox-release-bookworm.gpg >/dev/null
-if [[ $(sha512sum ~/proxmox-release-bookworm.gpg) -ne "7da6fe34168adc6e479327ba517796d4702fa2f8b4f0a9833f5ea6e6b48f6507a6da403a274fe201595edc86a84463d50383d07f64bdde2e3658108db7d6dc87 ~/proxmox-release-bookworm.gpg" ]]; then
+if [[ "$(sha512sum ~/proxmox-release-bookworm.gpg)" -ne "7da6fe34168adc6e479327ba517796d4702fa2f8b4f0a9833f5ea6e6b48f6507a6da403a274fe201595edc86a84463d50383d07f64bdde2e3658108db7d6dc87 ~/proxmox-release-bookworm.gpg" ]]; then
     echo "[-] Failed to fetch gpg key for proxmox repo"
     rm ~/proxmox-release-bookworm.gpg >/dev/null 2>/dev/null
     exit 1
