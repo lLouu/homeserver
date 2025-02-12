@@ -20,30 +20,30 @@ RTOKEN_SECRET="$(openssl rand -hex 8)-$(openssl rand -hex 4)-$(openssl rand -hex
 
 ## Add terraform user
 echo "[~] Setting up proxmox API"
-echo "user:terraform@pve:1:0:::::::" | sudo tee /etc/pve/user.cfg > /dev/null
-echo "token:terraform@pve!$ETOKEN_ID:0:0:extended terraform token:" | sudo tee /etc/pve/user.cfg > /dev/null
-echo "token:terraform@pve!$RTOKEN_ID:0:1:restricted terraform token:" | sudo tee /etc/pve/user.cfg > /dev/null
+echo "user:terraform@pve:1:0:::::::" | sudo tee -a /etc/pve/user.cfg > /dev/null
+echo "token:terraform@pve!$ETOKEN_ID:0:0:extended terraform token:" | sudo tee -a /etc/pve/user.cfg > /dev/null
+echo "token:terraform@pve!$RTOKEN_ID:0:1:restricted terraform token:" | sudo tee -a /etc/pve/user.cfg > /dev/null
 
 ### Groups
-echo "group:InfraAdmin:terraform@pve:Infra Admin:" | sudo tee /etc/pve/user.cfg > /dev/null
-echo "group:InfraUser:terraform@pve:Infra User:" | sudo tee /etc/pve/user.cfg > /dev/null
-echo "group:VMAdmin:terraform@pve,terraform@pve!$RTOKEN_ID:VM Admin:" | sudo tee /etc/pve/user.cfg > /dev/null
+echo "group:InfraAdmin:terraform@pve:Infra Admin:" | sudo tee -a /etc/pve/user.cfg > /dev/null
+echo "group:InfraUser:terraform@pve:Infra User:" | sudo tee -a /etc/pve/user.cfg > /dev/null
+echo "group:VMAdmin:terraform@pve,terraform@pve!$RTOKEN_ID:VM Admin:" | sudo tee -a /etc/pve/user.cfg > /dev/null
 ### /mapping acl
-echo "acl:1:/mapping:@InfraAdmin:PVEMappingAdmin" | sudo tee /etc/pve/user.cfg > /dev/null
-echo "acl:1:/mapping:@InfraUser:PVEMappingUser" | sudo tee /etc/pve/user.cfg > /dev/null
+echo "acl:1:/mapping:@InfraAdmin:PVEMappingAdmin" | sudo tee -a /etc/pve/user.cfg > /dev/null
+echo "acl:1:/mapping:@InfraUser:PVEMappingUser" | sudo tee -a /etc/pve/user.cfg > /dev/null
 ### /sdn/zones acl
-echo "acl:1:/sdn/zones:@InfraAdmin:PVESDNAdmin" | sudo tee /etc/pve/user.cfg > /dev/null
-echo "acl:1:/sdn/zones:@InfraUser:PVESDNUser" | sudo tee /etc/pve/user.cfg > /dev/null
+echo "acl:1:/sdn/zones:@InfraAdmin:PVESDNAdmin" | sudo tee -a /etc/pve/user.cfg > /dev/null
+echo "acl:1:/sdn/zones:@InfraUser:PVESDNUser" | sudo tee -a /etc/pve/user.cfg > /dev/null
 ### /storage acl
-echo "acl:1:/storage:@InfraAdmin:PVEDatastoreAdmin" | sudo tee /etc/pve/user.cfg > /dev/null
-echo "acl:1:/storage:@InfraUser:PVEDatastoreUser" | sudo tee /etc/pve/user.cfg > /dev/null
+echo "acl:1:/storage:@InfraAdmin:PVEDatastoreAdmin" | sudo tee -a /etc/pve/user.cfg > /dev/null
+echo "acl:1:/storage:@InfraUser:PVEDatastoreUser" | sudo tee -a /etc/pve/user.cfg > /dev/null
 ### /vms acl
-echo "acl:1:/vms:@VMAdmin:PVEVMAdmin" | sudo tee /etc/pve/user.cfg > /dev/null
+echo "acl:1:/vms:@VMAdmin:PVEVMAdmin" | sudo tee -a /etc/pve/user.cfg > /dev/null
 
 ### store secrets
-echo "terraform:$HASHED_PASS:" | sudo tee /etc/pve/priv/shadow.cfg > /dev/null
-echo "terraform@pve!$ETOKEN_ID $ETOKEN_SECRET" | sudo tee /etc/pve/priv/token.cfg > /dev/null
-echo "terraform@pve!$RTOKEN_ID $RTOKEN_SECRET" | sudo tee /etc/pve/priv/token.cfg > /dev/null
+echo "terraform:$HASHED_PASS:" | sudo tee -a /etc/pve/priv/shadow.cfg > /dev/null
+echo "terraform@pve!$ETOKEN_ID $ETOKEN_SECRET" | sudo tee -a /etc/pve/priv/token.cfg > /dev/null
+echo "terraform@pve!$RTOKEN_ID $RTOKEN_SECRET" | sudo tee -a /etc/pve/priv/token.cfg > /dev/null
 
 
 # user:uname@<pam|pve>:1(enabled):<expiration_ts|0>:first_name:last_name:email:comment:<x if totp enabled>:
