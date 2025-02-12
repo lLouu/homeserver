@@ -2,15 +2,15 @@
 #######
 ## Remove Debian Kernel
 echo "[~] Removing debian kernel"
-sudo apt-get remove linux-image-amd64 'linux-image-6.1*' os-prober -y > /dev/null
-sudo update-grub > /dev/null
+sudo apt-get remove linux-image-amd64 'linux-image-6.1*' os-prober -yq > /dev/null
+sudo update-grub >/dev/null 2>/dev/null
 echo "[+] Debian kernel Removed"
 
 # Setup init terraform
 ## Generate hash & Token
 echo "[~] Generating terraform credentials"
-sudo apt-get install python3-bcrypt -y > /dev/null
-NEW_PASS=$(openssl rand -base64 64)
+sudo apt-get install python3-bcrypt -yq > /dev/null
+NEW_PASS=$(openssl rand -base64 48)
 HASHED_PASS=$(python3 -c "import bcrypt; print(bcrypt.hashpw(b'$NEW_PASS', bcrypt.gensalt()).decode())")
 ETOKEN_ID=-$(openssl rand -hex 12)
 ETOKEN_SECRET="$(openssl rand -hex 8)-$(openssl rand -hex 4)-$(openssl rand -hex 4)-$(openssl rand -hex 4)-$(openssl rand -hex 12)"

@@ -62,7 +62,7 @@ fi
 
 ## Add proxmox VE repo
 echo "[~] Adding proxmox VE repo"
-if [[ ! "$(cat /etc/apt/sources.list.d/pve-install-repo.list | grep 'deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription')" ]]; then
+if [[ ! -f '/etc/apt/sources.list.d/pve-install-repo.list' || ! "$(cat /etc/apt/sources.list.d/pve-install-repo.list | grep 'deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription')" ]]; then
     echo "deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription" | sudo tee /etc/apt/sources.list.d/pve-install-repo.list > /dev/null
 fi
 wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -q -O ~/proxmox-release-bookworm.gpg >/dev/null
@@ -76,6 +76,7 @@ sudo apt-get update -yq > /dev/null
 sudo apt-get upgrade -yq > /dev/null
 sudo apt-get full-upgrade -yq > /dev/null
 echo "[+] Proxmox VE registered"
+echo ""
 
 ## Install proxmox
 echo "[~] Installing proxmox kernel"
@@ -94,5 +95,5 @@ sudo apt-get install postfix -yq > /dev/null
 
 ## Reboot
 if [[ -f "/etc/sudoers.d/tmp" ]];then sudo rm /etc/sudoers.d/tmp; fi
-systemctl reboot
+sudo systemctl reboot
 
