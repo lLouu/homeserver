@@ -68,6 +68,7 @@ if [[ "$(sha512sum ~/proxmox-release-bookworm.gpg | awk '{print($1)}')" != "7da6
     exit 1
 fi
 sudo mv ~/proxmox-release-bookworm.gpg /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
+sudo apt-get update -y > /dev/null
 sudo apt-get upgrade -y > /dev/null
 sudo apt-get full-upgrade -y > /dev/null
 echo "[+] Proxmox VE registered"
