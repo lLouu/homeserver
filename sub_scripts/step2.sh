@@ -12,9 +12,9 @@ echo "[~] Generating terraform credentials"
 sudo apt-get install python3-bcrypt -yq > /dev/null
 NEW_PASS=$(openssl rand -base64 48)
 HASHED_PASS=$(python3 -c "import bcrypt; print(bcrypt.hashpw(b'$NEW_PASS', bcrypt.gensalt()).decode())")
-ETOKEN_ID=-$(openssl rand -hex 12)
+ETOKEN_ID=e$(openssl rand -hex 12)
 ETOKEN_SECRET="$(openssl rand -hex 8)-$(openssl rand -hex 4)-$(openssl rand -hex 4)-$(openssl rand -hex 4)-$(openssl rand -hex 12)"
-RTOKEN_ID=-$(openssl rand -hex 12)
+RTOKEN_ID=r$(openssl rand -hex 12)
 RTOKEN_SECRET="$(openssl rand -hex 8)-$(openssl rand -hex 4)-$(openssl rand -hex 4)-$(openssl rand -hex 4)-$(openssl rand -hex 12)"
 
 
@@ -56,5 +56,5 @@ echo "terraform@pve!$RTOKEN_ID $RTOKEN_SECRET" | sudo tee -a /etc/pve/priv/token
 
 echo "[+] API setted up"
 echo "[>] The terraform user password is '$NEW_PASS'"
-echo "[>] The extended API token is '$ETOKEN_SECRET'"
-echo "[>] The restricted API token is '$RTOKEN_SECRET'"
+echo "[>] The extended API Auth header is 'Authorization: PVEAPIToken=terraform@pve!$ETOKEN_ID=$ETOKEN_SECRET'"
+echo "[>] The restricted API token is 'Authorization: PVEAPIToken=terraform@pve!$RTOKEN_ID=$RTOKEN_SECRET'"
