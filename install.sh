@@ -10,7 +10,7 @@ banner (){
         echo '/_/ /_/  \____//_/ /_/ /_/\___//____/ \___//_/    _____/ \___//_/     ';
         echo ""
         echo "Author : lLou_"
-        echo "Script version : V0.2"
+        echo "Script version : V0.3"
         echo ""
         echo ""
 }
@@ -43,6 +43,10 @@ sudo apt-get upgrade -yq > /dev/null
 sudo apt-get autoremove -yq > /dev/null
 echo "[+] Updating and upgrading done"
 echo ""
+
+# Use MergerFS & SnapRaid - TODO
+
+# Unlock vGPU - TODO
 
 # Proxmox installation
 ## Hostname management
