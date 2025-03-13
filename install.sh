@@ -50,6 +50,7 @@ sudo apt-get install mergerfs -yq > /dev/null
 
 # Mount disks
 sudo mkdir /mnt/drives /mnt/merged
+echo "[*] Please ensure to have done your partitionning before the script execution. CTRL+C if that has not be done yet"
 echo "[#] Here are all partitions :"
 lsblk -o NAME,SIZE
 part="1"
@@ -69,14 +70,14 @@ while [[ "$part" ]];do
     while [[ ! $type ]];do
         echo "[*] Type (vram, hot, cold, temp_hot, temp_cold):"
         read -p "[>] " inputed_type
-        type=$(echo -e "vram\nhot\ncold\ntemp_hot\ntemp_cold" | grep ^$inputed_type)
-        if [[ ! $part ]];then
+        type=$(echo -e "vram\nhot\ncold\ntemp_hot\ntemp_cold\nthot\ntcold" | grep ^$inputed_type)
+        if [[ ! $type || $(echo $type) != $(echo "$type") ]];then
             echo "[!] Invalid type"
         fi
     done
 
     sudo mkdir /mnt/drives/$type$id
-    echo "$part /mnt/drives/$type$id ext4 defaults 0 2" | sudo tee -a /etc/fstab > /dev/null
+    echo "/dev/$part /mnt/drives/$type$id ext4 defaults 0 2" | sudo tee -a /etc/fstab > /dev/null
     id=$((id+1))
 done
 # configure mergerfs
@@ -87,8 +88,8 @@ echo "/mnt/drives/vram* /mnt/merged/vram fuse.mergerfs defaults,allow_other,use_
 echo "/mnt/drives/hot* /mnt/merged/hot fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
 echo "/mnt/drives/cold* /mnt/merged/cold fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
 echo "/mnt/merged/hot:/mnt/merged/cold /mnt/storage fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/drives/temp_cold* /mnt/merged/temp_cold fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/drives/temp_hot* /mnt/merged/temp_hot fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
+echo "/mnt/drives/temp_cold*:/mnt/drives/tcold* /mnt/merged/temp_cold fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
+echo "/mnt/drives/temp_hot*:/mnt/drives/thot* /mnt/merged/temp_hot fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
 echo "/mnt/merged/temp_hot:/mnt/merged/temp_cold /mnt/temp fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
 # mount
 sudo mount -a
@@ -107,7 +108,7 @@ echo "[+] Mounting done"
 # Unlock vGPU
 echo "[~] Starting vGPU unlock"
 echo "[~] Downloading dependencies"
-sudo apt-get install python3 python3-pip dkms git jq mdevctl -yq > /dev/null
+sudo apt-get install python3 python3-pip dkms git jq mdevctl megatools -yq > /dev/null
 for py in $(ls /usr/lib/ | grep python3.);do
     if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
         sudo mv /usr/lib/$py/EXTERNALLY-MANAGED /usr/lib/$py/EXTERNALLY-MANAGED.old
@@ -124,17 +125,26 @@ echo "[~] Setting up iommu"
 sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt"/' /etc/default/grub
 sudo update-grub
 
-echo -e "\nvfio\nvfio_iommu_typel\nvfio_pci\nvfio_virqfd" | sudo tee -a /etc/modules >/dev/null
+echo -e "\nvfio\nvfio_iommu_typel\nvfio_pci\nvfio_virqfd\n" | sudo tee -a /etc/modules >/dev/null
 echo "options vfio_iommu_typel allow_unsafe_interrupts=1" | sudo tee /etc/modprobe.d/iommu_unsafe_interrupts.conf >/dev/null
 echo "options kvm ignore_msrs=1" | sudo tee /etc/modprobe.d/kvm_msrs.conf >/dev/null
 echo "blacklist nouveau" | sudo tee -a /etc/modprobe.d/blacklist.conf >/dev/null
 sudo update-initramfs -u
 
 echo "[~] Fetching Drivers"
-# https://cloud.google.com/compute/docs/gpus/grid-drivers-table
-wget https://storage.googleapis.com/nvidia-drivers-us-public/GRID/vGPU17.5/NVIDIA-Linux-x86_64-550.144.03-grid.run
-chmod +x NVIDIA-Linux-x86_64-550.144.03-grid.run
-sudo ./NVIDIA-Linux-x86_64-550.144.03-grid.run --dkms
+# https://github.com/wvthoog/proxmox-vgpu-installer/blob/main/proxmox-installer.sh
+version="550.54.10"
+megadl https://mega.nz/file/JjtyXRiC#cTIIvOIxu8vf-RdhaJMGZAwSgYmqcVEKNNnRRJTwDFI
+chmod +x NVIDIA-Linux-x86_64-$version-vgpu-kvm
+sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm --dkms
+sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpud.service
+sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpu-mgr.service
+systemctl daemon-reload
+sudo sed -i 's/cpuset.h>/cpuset.h>\n#include "\/lib\/vgpu_unlock\/vgpu_unlock_hooks.c"/' /usr/src/nvidia-$version/nvidia/os-interface.c
+echo "ldflags-y += -T /lib/vgpu_unlock/kern.ld" | sudo tee -a /usr/src/nvidia-$version/nvidia/nvidia.Kbuild >/dev/ull
+echo "[~] Building driver"
+dkms remove -m nvidia -v $version --all
+dkms install -m nvidia -v $version
 
 # Proxmox installation
 ## Hostname management
