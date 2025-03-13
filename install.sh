@@ -123,7 +123,12 @@ chmod -R +x vgpu_unlock
 sudo mv vgpu_unlock /lib/
 
 echo "[~] Setting up iommu"
+vendor_id=$(cat /proc/cpuinfo | grep vendor_id | awk 'NR==1{print $3}')
+if [[ "$vendor_id" = "AuthenticAMD" ]];then
+sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet amd_iommu=on iommu=pt"/' /etc/default/grub
+else
 sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt"/' /etc/default/grub
+fi
 sudo update-grub >/dev/null 2>/dev/null
 
 echo -e "\nvfio\nvfio_iommu_typel\nvfio_pci\nvfio_virqfd\n" | sudo tee -a /etc/modules >/dev/null
@@ -137,12 +142,12 @@ echo "[~] Fetching Drivers"
 version="550.54.10"
 megadl https://mega.nz/file/JjtyXRiC#cTIIvOIxu8vf-RdhaJMGZAwSgYmqcVEKNNnRRJTwDFI >/dev/null 2>/dev/null
 chmod +x NVIDIA-Linux-x86_64-$version-vgpu-kvm.run
-sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm.run --dkms
+sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm.run --dkms -m=kernel -s >/dev/null 2>/dev/null
 sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpud.service
 sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpu-mgr.service
-systemctl daemon-reload
+sudo systemctl daemon-reload
 sudo sed -i 's/cpuset.h>/cpuset.h>\n#include "\/lib\/vgpu_unlock\/vgpu_unlock_hooks.c"/' /usr/src/nvidia-$version/nvidia/os-interface.c
-echo "ldflags-y += -T /lib/vgpu_unlock/kern.ld" | sudo tee -a /usr/src/nvidia-$version/nvidia/nvidia.Kbuild >/dev/ull
+echo "ldflags-y += -T /lib/vgpu_unlock/kern.ld" | sudo tee -a /usr/src/nvidia-$version/nvidia/nvidia.Kbuild >/dev/null
 echo "[~] Building driver"
 dkms remove -m nvidia -v $version --all >/dev/null 2>/dev/null
 dkms install -m nvidia -v $version >/dev/null 2>/dev/null
