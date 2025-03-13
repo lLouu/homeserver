@@ -45,32 +45,55 @@ echo "[+] Updating and upgrading done"
 echo ""
 
 # Manage data 
+echo "[~] Mounting drives"
 sudo apt-get install mergerfs -yq > /dev/null
 
 # Mount disks
-# TODO : think of temp files
 sudo mkdir /mnt/drives /mnt/merged
-echo "Here are all partitions :"
+echo "[#] Here are all partitions :"
 lsblk -o NAME,SIZE
 part="1"
 id="1"
-while [[ "$part" ]];do 
-    # TODO : check inputs
-    read -p "Select partition : " part
-    read -p "Type (vram, hot, cold) : " type
+while [[ "$part" ]];do
+    part=""
+    while [[ ! $part ]];do
+        echo "[*] Select partition :"
+        read -p "[>] " inputed_part
+        part="$(ls dev | grep ^$inputed_part$)"
+        if [[ ! $part ]];then
+            echo "[!] Invalid partition"
+        fi
+    done
+
+    type=""
+    while [[ ! $type ]];do
+        echo "[*] Type (vram, hot, cold, temp_hot, temp_cold):"
+        read -p "[>] " inputed_type
+        type=$(echo -e "vram\nhot\ncold\ntemp_hot\ntemp_cold" | grep ^$inputed_type)
+        if [[ ! $part ]];then
+            echo "[!] Invalid type"
+        fi
+    done
+
     sudo mkdir /mnt/drives/$type$id
     echo "$part /mnt/drives/$type$id ext4 defaults 0 2" | sudo tee -a /etc/fstab > /dev/null
     id=$((id+1))
 done
 # configure mergerfs
-sudo mkdir /mnt/merged/vram /mnt/merged/hot /mnt/merged/cold /mnt/storage
+## /mnt/merged/vram is used for vram, /mnt/storage is under RAID, /mnt/temp is not, hot is for caching (SSD), cold for archivage (HDD)
+echo "[~] Configuring mergerfs"
+sudo mkdir /mnt/merged/vram /mnt/merged/hot /mnt/merged/cold /mnt/merged/temp_hot /mnt/merged/temp_cold /mnt/storage /mnt/temp
 echo "/mnt/drives/vram* /mnt/merged/vram fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
 echo "/mnt/drives/hot* /mnt/merged/hot fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
 echo "/mnt/drives/cold* /mnt/merged/cold fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
 echo "/mnt/merged/hot:/mnt/merged/cold /mnt/storage fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
+echo "/mnt/drives/temp_cold* /mnt/merged/temp_cold fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
+echo "/mnt/drives/temp_hot* /mnt/merged/temp_hot fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
+echo "/mnt/merged/temp_hot:/mnt/merged/temp_cold /mnt/temp fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
 # mount
 sudo mount -a
 # configure swap
+echo "[~] Configuring swap"
 size=$(df -h /mnt/merged/vram | tail -n1 | awk '{print($4)}')
 sudo fallocate -l $size /mnt/merged/vram/swapfile
 sudo chmod 600 /mnt/merged/vram/swapfile
@@ -79,8 +102,11 @@ sudo swapon /mnt/merged/vram/swapfile
 echo "/mnt/merged/vram/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
 # hot-cold storage management - TODO
 
+echo "[+] Mounting done"
 
 # Unlock vGPU
+echo "[~] Starting vGPU unlock"
+echo "[~] Downloading dependencies"
 sudo apt-get install python3 python3-pip dkms git jq mdevctl -yq > /dev/null
 for py in $(ls /usr/lib/ | grep python3.);do
     if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
@@ -89,10 +115,12 @@ for py in $(ls /usr/lib/ | grep python3.);do
 done
 pip3 install frida
 
+echo "[~] Fetching script"
 git clone https://github.com/DualCoder/vgpu_unlock
 chmod -R +x vgpu_unlock
 sudo mv vgpu_unlock /lib/
 
+echo "[~] Setting up iommu"
 sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt"/' /etc/default/grub
 sudo update-grub
 
@@ -102,6 +130,7 @@ echo "options kvm ignore_msrs=1" | sudo tee /etc/modprobe.d/kvm_msrs.conf >/dev/
 echo "blacklist nouveau" | sudo tee -a /etc/modprobe.d/blacklist.conf >/dev/null
 sudo update-initramfs -u
 
+echo "[~] Fetching Drivers"
 # https://cloud.google.com/compute/docs/gpus/grid-drivers-table
 wget https://storage.googleapis.com/nvidia-drivers-us-public/GRID/vGPU17.5/NVIDIA-Linux-x86_64-550.144.03-grid.run
 chmod +x NVIDIA-Linux-x86_64-550.144.03-grid.run
