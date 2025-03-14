@@ -144,7 +144,7 @@ fi
 ## Ubuntu
 if [[ ! -f "/var/lib/vz/template/iso/ubuntu-24.04.1-live-server-amd64.iso" || "$(sha256sum /var/lib/vz/template/iso/ubuntu-24.04.1-live-server-amd64.iso | awk '{print($1)}')" != "e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9 " ]]; then
    echo "[~] Downloading Ubuntu Server ISO"
-   wget https://releases.ubuntu.com/24.04.1/ubuntu-24.04.1-live-server-amd64.iso -q > /dev/null
+   wget https://old-releases.ubuntu.com/releases/noble/ubuntu-24.04.1-live-server-amd64.iso -q > /dev/null
    if [[ "$(sha256sum ubuntu-24.04.1-live-server-amd64.iso | awk '{print($1)}')" != "e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9 " ]]; then
       echo "[!] Could not download Ubuntu Server ISO"
       rm ubuntu-24.04.1-live-server-amd64.iso

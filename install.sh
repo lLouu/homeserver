@@ -279,7 +279,6 @@ echo "$artifacts/step2.sh $options" > ~/.bash_profile
 
 
 ## Reboot
-if [[ -f "/etc/sudoers.d/tmp" ]];then sudo rm /etc/sudoers.d/tmp; fi
 if [[ -f "/etc/network/interfaces.new" ]];then sudo rm /etc/network/interfaces.new; fi
 sudo systemctl reboot
 
