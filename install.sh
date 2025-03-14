@@ -27,7 +27,7 @@ fi
 artifacts="/home/$usr/.artifacts"
 log_dir="/home/$usr/.logs"
 logs="$log_dir/homeserver.log"
-mkdir $artifacts $log_dir
+mkdir -p $artifacts $log_dir
 cd $artifacts
 
 stop (){
@@ -85,7 +85,7 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 
 # match the branch
 if [[ $check ]];then
-    wget https://raw.githubusercontent.com/llouu/homeserver/$branch/install.sh
+    wget https://raw.githubusercontent.com/llouu/homeserver/$branch/install.sh -q >/dev/null
     chmod +x install.sh
     ./install.sh --branch $branch -nc
     exit
@@ -138,7 +138,7 @@ while [[ "$inputed_part" ]];do
             fi
         done
 
-        sudo mkdir /mnt/.$type$id
+        sudo mkdir -p /mnt/.$type$id
         echo "/dev/$part /mnt/.$type$id ext4 defaults 0 2" | sudo tee -a /etc/fstab > /dev/null
         id=$((id+1))
     fi
@@ -146,7 +146,7 @@ done
 # configure mergerfs
 ## /mnt/vram is used for vram, /mnt/storage is under RAID, /mnt/temp is not, hot is for caching (SSD), cold for archivage (HDD)
 echo "[~] Configuring mergerfs"
-sudo mkdir /mnt/vram /mnt/hot /mnt/cold /mnt/temp_hot /mnt/temp_cold /mnt/storage /mnt/temp
+sudo mkdir -p /mnt/vram /mnt/hot /mnt/cold /mnt/temp_hot /mnt/temp_cold /mnt/storage /mnt/temp
 echo "/mnt/.vram* /mnt/vram fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
 echo "/mnt/.hot* /mnt/hot fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
 echo "/mnt/.cold* /mnt/cold fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
@@ -168,9 +168,9 @@ for vram_drive in $(ls -a /mnt | grep .vram);do
     echo "$swapfile none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
 done
 # hot-cold storage management
-wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/storage_manager.sh
+wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/storage_manager.sh -q >/dev/null
 chmod +x storage_manager.sh
-sudo mkdir /opt/homeserver
+sudo mkdir -p /opt/homeserver
 sudo mv storage_manager.sh /opt/homeserver/storage_manager
 (crontab -l 2>/dev/null; echo "0 0 */3 * * /opt/homeserver/storage_manager") | crontab -
 
@@ -243,7 +243,7 @@ echo "[~] Adding proxmox VE repo"
 if [[ ! -f '/etc/apt/sources.list.d/pve-install-repo.list' || ! "$(cat /etc/apt/sources.list.d/pve-install-repo.list | grep 'deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription')" ]]; then
     echo "deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription" | sudo tee /etc/apt/sources.list.d/pve-install-repo.list > /dev/null
 fi
-wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -q -O ~/proxmox-release-bookworm.gpg >/dev/null
+wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -q -O ~/proxmox-release-bookworm.gpg >/dev/null -q >/dev/null
 if [[ "$(sha512sum ~/proxmox-release-bookworm.gpg | awk '{print($1)}')" != "7da6fe34168adc6e479327ba517796d4702fa2f8b4f0a9833f5ea6e6b48f6507a6da403a274fe201595edc86a84463d50383d07f64bdde2e3658108db7d6dc87" ]]; then
     echo "[-] Failed to fetch gpg key for proxmox repo"
     rm ~/proxmox-release-bookworm.gpg >/dev/null 2>/dev/null
@@ -269,9 +269,9 @@ sudo debconf-set-selections <<< "postfix postfix/main_mailer_type string 'Satell
 sudo apt-get install postfix -yq > /dev/null
 
 ## Set step 2 on run after reboot
-wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/step2.sh
+wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/step2.sh -q >/dev/null
 sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
-echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin $(whoami) --noclear %I \$TERM" | sudo tee /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf >/dev/null
+echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin $(whoami) --noclear %I \\\$TERM" | sudo tee /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf >/dev/null
 options="--start $start --branch $branch"
 if [[ $nologs ]];then options="$options -nl"
 echo "~/step2.sh $options" > ~/.bash_profile
