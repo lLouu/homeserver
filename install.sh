@@ -270,6 +270,7 @@ sudo apt-get install postfix -yq > /dev/null
 
 ## Set step 2 on run after reboot
 wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/step2.sh -q >/dev/null
+chmod +x step2.sh
 sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
 echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin $(whoami) --noclear %I \\\$TERM" | sudo tee /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf >/dev/null
 options="--start $start --branch $branch"
