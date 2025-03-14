@@ -49,7 +49,6 @@ echo "[~] Mounting drives"
 sudo apt-get install mergerfs -yq > /dev/null
 
 # Mount disks
-sudo mkdir /mnt/drives /mnt/merged
 echo "[*] Please ensure to have done your partitionning before the script execution. CTRL+C if that has not be done yet"
 echo "[#] Here are all partitions :"
 lsblk -o NAME,SIZE
@@ -76,32 +75,32 @@ while [[ "$inputed_part" ]];do
             fi
         done
 
-        sudo mkdir /mnt/drives/$type$id
-        echo "/dev/$part /mnt/drives/$type$id ext4 defaults 0 2" | sudo tee -a /etc/fstab > /dev/null
+        sudo mkdir /mnt/.$type$id
+        echo "/dev/$part /mnt/.$type$id ext4 defaults 0 2" | sudo tee -a /etc/fstab > /dev/null
         id=$((id+1))
     fi
 done
 # configure mergerfs
-## /mnt/merged/vram is used for vram, /mnt/storage is under RAID, /mnt/temp is not, hot is for caching (SSD), cold for archivage (HDD)
+## /mnt/vram is used for vram, /mnt/storage is under RAID, /mnt/temp is not, hot is for caching (SSD), cold for archivage (HDD)
 echo "[~] Configuring mergerfs"
-sudo mkdir /mnt/merged/vram /mnt/merged/hot /mnt/merged/cold /mnt/merged/temp_hot /mnt/merged/temp_cold /mnt/storage /mnt/temp
-echo "/mnt/drives/vram* /mnt/merged/vram fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/drives/hot* /mnt/merged/hot fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/drives/cold* /mnt/merged/cold fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/merged/hot:/mnt/merged/cold /mnt/storage fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/drives/temp_cold*:/mnt/drives/tcold* /mnt/merged/temp_cold fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/drives/temp_hot*:/mnt/drives/thot* /mnt/merged/temp_hot fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/merged/temp_hot:/mnt/merged/temp_cold /mnt/temp fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
+sudo mkdir /mnt/vram /mnt/hot /mnt/cold /mnt/temp_hot /mnt/temp_cold /mnt/storage /mnt/temp
+echo "/mnt/.vram* /mnt/vram fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
+echo "/mnt/.hot* /mnt/hot fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
+echo "/mnt/.cold* /mnt/cold fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
+echo "/mnt/hot:/mnt/cold /mnt/storage fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
+echo "/mnt/.temp_cold*:/mnt/.tcold* /mnt/temp_cold fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
+echo "/mnt/.temp_hot*:/mnt/.thot* /mnt/temp_hot fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
+echo "/mnt/temp_hot:/mnt/temp_cold /mnt/temp fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
 # mount
 sudo mount -a 2>/dev/null
 # configure swap
 echo "[~] Configuring swap"
-size=$(df -h /mnt/merged/vram | tail -n1 | awk '{print($4)}')
-sudo fallocate -l $size /mnt/merged/vram/swapfile 2>/dev/null
-sudo chmod 600 /mnt/merged/vram/swapfile 2>/dev/null
-sudo mkswap /mnt/merged/vram/swapfile 2>/dev/null
-sudo swapon /mnt/merged/vram/swapfile 2>/dev/null
-echo "/mnt/merged/vram/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+size=$(df -h /mnt/vram | tail -n1 | awk '{print($4)}')
+sudo fallocate -l $size /mnt/vram/swapfile 2>/dev/null
+sudo chmod 600 /mnt/vram/swapfile 2>/dev/null
+sudo mkswap /mnt/vram/swapfile 2>/dev/null
+sudo swapon /mnt/vram/swapfile 2>/dev/null
+echo "/mnt/vram/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
 # hot-cold storage management - TODO
 
 echo "[+] Mounting done"
