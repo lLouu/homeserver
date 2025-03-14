@@ -1,5 +1,63 @@
+## Init back
+stop (){
+   if [[ -d $artifacts ]];then sudo rm -R $artifacts; fi
+   if [[ -f "/etc/sudoers.d/tmp" ]];then sudo rm /etc/sudoers.d/tmp; fi
+   exit 1
+}
+trap stop INT
+
+usr=$(whoami)
+if [[ $usr == "root" ]];then
+        echo "[-] Running as root. Please run in rootless mode... Exiting..."
+        stop
+fi
+
+artifacts="/home/$usr/.artifacts"
+log_dir="/home/$usr/.logs"
+logs="$log_dir/homeserver.log"
+cd $artifacts
+
+# Manage options
+branch="main"
+start=$(date +%s)
+nologs=""
+
+POSITIONAL_ARGS=()
+ORIGINAL_ARGS=$@
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -b|--branch)
+      branch="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -s|--start)
+      start="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -nl|--no-log)
+      nologs="1"
+      shift
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1") # save positional arg
+      shift # past argument
+      ;;
+  esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
+
+
 
 #######
+## Clean previous step auto-relaunch
+export TERM=xterm
+sudo rm /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf
+sed -i 's/~\/step2.sh//' ~/.bash_profile
+
 ## Remove Debian Kernel
 echo "[~] Removing debian kernel"
 sudo apt-get remove linux-image-amd64 'linux-image-6.1*' os-prober -yq > /dev/null
@@ -109,3 +167,6 @@ if [[ ! -f "/var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso" || "$(s
       echo "[+] Pfsense ISO added to ISO local library"
    fi
 fi
+
+echo "[*] Script executed in $(date -d@$(($(date +%s)-$start)) -u +%H:%M:%S)"
+stop

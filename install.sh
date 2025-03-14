@@ -1,5 +1,6 @@
 #! /bin/bash
 
+# TODO : logs
 start=$(date +%s)
 
 banner (){
@@ -10,7 +11,7 @@ banner (){
         echo '/_/ /_/  \____//_/ /_/ /_/\___//____/ \___//_/    _____/ \___//_/     ';
         echo ""
         echo "Author : lLou_"
-        echo "Script version : V0.4"
+        echo "Script version : V0.5"
         echo ""
         echo ""
 }
@@ -22,11 +23,73 @@ if [[ $usr == "root" ]];then
         exit 1
 fi
 
+# Set a working & log dir
+artifacts="/home/$usr/.artifacts"
+log_dir="/home/$usr/.logs"
+logs="$log_dir/homeserver.log"
+mkdir $artifacts $log_dir
+cd $artifacts
+
 stop (){
+   if [[ -d $artifacts ]];then sudo rm -R $artifacts; fi
    if [[ -f "/etc/sudoers.d/tmp" ]];then sudo rm /etc/sudoers.d/tmp; fi
    exit 1
 }
 trap stop INT
+
+# Manage options
+branch="main"
+check="1"
+nologs=""
+
+POSITIONAL_ARGS=()
+ORIGINAL_ARGS=$@
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -b|--branch)
+      branch="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -nc|--no-check)
+      check=""
+      shift
+      ;;
+    -nl|--no-log)
+      nologs="1"
+      shift
+      ;;
+    -h|--help)
+      echo "[~] Github options"
+      echo "[*] -b | --branch <main|dev> (default: main) - Use this branch version of the github"
+      echo "[*] -nc | --no-check - Disable the check of the branch on github"
+      echo ""
+      echo "[~] Misc options"
+      echo "[*] -nl | --no-log - Disable logging"
+      echo "[*] -h | --help - Get help"
+      stop
+      ;;
+    -*|--*)
+      echo "[-] Unknown option $1... Exiting"
+      stop
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1") # save positional arg
+      shift # past argument
+      ;;
+  esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
+
+# match the branch
+if [[ $check ]];then
+    wget https://raw.githubusercontent.com/llouu/homeserver/$branch/install.sh
+    chmod +x install.sh
+    ./install.sh --branch $branch -nc
+    exit
+fi
 
 # Get sudoer ticket
 printf "Defaults\ttimestamp_timeout=-1\n" | sudo tee /etc/sudoers.d/tmp > /dev/null
@@ -104,7 +167,12 @@ for vram_drive in $(ls -a /mnt | grep .vram);do
     sudo swapon $swapfile 2>/dev/null
     echo "$swapfile none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
 done
-# hot-cold storage management - TODO
+# hot-cold storage management
+wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/storage_manager.sh
+chmod +x storage_manager.sh
+sudo mkdir /opt/homeserver
+sudo mv storage_manager.sh /opt/homeserver/storage_manager
+(crontab -l 2>/dev/null; echo "0 0 */3 * * /opt/homeserver/storage_manager") | crontab -
 
 echo "[+] Mounting done"
 
@@ -200,7 +268,13 @@ sudo debconf-set-selections <<< "postfix postfix/mailname string '$(hostname)'"
 sudo debconf-set-selections <<< "postfix postfix/main_mailer_type string 'Satellite system'"
 sudo apt-get install postfix -yq > /dev/null
 
-## Set step 2 on run after reboot - TODO
+## Set step 2 on run after reboot
+wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/step2.sh
+sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
+echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin $(whoami) --noclear %I \$TERM" | sudo tee /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf >/dev/null
+options="--start $start --branch $branch"
+if [[ $nologs ]];then options="$options -nl"
+echo "~/step2.sh $options" > ~/.bash_profile
 
 
 ## Reboot
