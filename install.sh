@@ -274,7 +274,7 @@ sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
 echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin $(whoami) --noclear %I \\\$TERM" | sudo tee /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf >/dev/null
 options="--start $start --branch $branch"
 if [[ $nologs ]];then options="$options -nl"
-echo "~/step2.sh $options" > ~/.bash_profile
+echo "$artifacts/step2.sh $options" > ~/.bash_profile
 
 
 ## Reboot
