@@ -95,12 +95,15 @@ echo "/mnt/temp_hot:/mnt/temp_cold /mnt/temp fuse.mergerfs defaults,allow_other,
 sudo mount -a 2>/dev/null
 # configure swap
 echo "[~] Configuring swap"
-size=$(df -h /mnt/vram | tail -n1 | awk '{print($4)}')
-sudo fallocate -l $size /mnt/vram/swapfile 2>/dev/null
-sudo chmod 600 /mnt/vram/swapfile 2>/dev/null
-sudo mkswap /mnt/vram/swapfile 2>/dev/null
-sudo swapon /mnt/vram/swapfile 2>/dev/null
-echo "/mnt/vram/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+for vram_drive in $(ls -a /mnt | grep .vram);do
+    size=$(df -h /mnt/$vram_drive | tail -n1 | awk '{print($4)}')
+    swapfile="/mnt/$vram_drive/$vram_drive.swap"
+    sudo fallocate -l $size $swapfile 2>/dev/null
+    sudo chmod 600 $swapfile 2>/dev/null
+    sudo mkswap $swapfile >/dev/null 2>/dev/null
+    sudo swapon $swapfile 2>/dev/null
+    echo "$swapfile none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+done
 # hot-cold storage management - TODO
 
 echo "[+] Mounting done"
