@@ -42,3 +42,9 @@ NVIDIA driver is setted up and compiled such as vGPU are unlocked and available 
 
 ## Default API keys
 Creating base ressources to allow terraform to interact with proxmox
+
+## ISO library
+- alpine-virt-3.21.2-aarch64.iso
+- debian-12.9.0-amd64-netinst.iso
+- ubuntu-24.04.1-live-server-amd64.iso
+- pfSense-CE-2.7.2-RELEASE-amd64.iso

@@ -28,29 +28,29 @@ resource "proxmox_vm_qemu" "instances" {
   }
   dynamic "disk" {
     for_each = var.vms[count.index].disks
-    iterator = disk
+    diskConf = each.value
 
     content {
       type       = "scsi"
-      emulatessd = disk.value.is_ssd
-      size       = disk.value.size
-      storage    = disk.value.storage
+      emulatessd = diskConf.is_ssd
+      size       = diskConf.size
+      storage    = diskConf.storage
     }
   }
 
   # Network
   dynamic "network" {
-    for_each =  var.vms[count.index].networks
-    iterator = inet.value
+    for_each = var.vms[count.index].networks
+    inet = each.value
 
     content {
       model  = "virtio"
-      bridge = inet.value
+      bridge = inet
     }
   }
 
   # TODO : PCI
 
   # Remote automation
-  user_data = file("${path.module}/automation/${var.vms[count.index].automation_script}")
+  # user_data = file("${path.module}/automation/${var.vms[count.index].automation_script}")
 }
