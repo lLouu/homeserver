@@ -29,8 +29,7 @@ variable "vms" {
     networks = list(object({
       id = number
       bridge = string
-    })) 
-    automation_script = string
+    }))
   }))
 }
 

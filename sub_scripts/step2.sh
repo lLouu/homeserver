@@ -179,7 +179,21 @@ sudo apt update && sudo apt install terraform
 sudo pip install ansible
 
 # Deploying initial state
+git clone -b $branch https://github.com/llouu/homeserver --quiet >/dev/null 2>/dev/null
+cd homeserver/terraform/mainframe
+mv ../configs/proxmox.tfvars.json ./
+mv ../configs/init.tfvars.json ./
+sed -i "s/===HOSTNAME===/$(cat /etc/hostname)/" proxmox.tfvars.json
+sed -i "s/===IP===/$(ip a | grep "inet " | grep -v "127.0.0.1" | head -n1 | awk '{print($2)}' | cut -d'/' -f1)/" proxmox.tfvars.json
+sed -i "s/===ID===/terraform@pve!$TOKEN_ID/" proxmox.tfvars.json
+sed -i "s/===SECRET===/$TOKEN_SECRET/" proxmox.tfvars.json
 
+terraform init
+terraform plan -var-file=proxmox.tfvars.json -var-file=init.tfvars.json -out plan
+terraform apply "plan"
+
+cd ../../..
+sudo rm -r homeserver
 
 # Unsetting terraform & Ansible
 sudo apt remove terraform

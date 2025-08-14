@@ -14,7 +14,7 @@ resource "proxmox_vm_qemu" "instances" {
   cores       = var.vms[count.index].cores
 
   # Behaviour
-  boot        = "order=scsi0"
+  boot        = "order=scsi0;ide2"
   scsihw      = "virtio-scsi-pci"
   agent       = 1
   onboot      = true
@@ -22,10 +22,9 @@ resource "proxmox_vm_qemu" "instances" {
 
   # Storage
   disk {
-    type     = "disk"
-    storage  = "local"
-    iso      = var.vms[count.index].iso
-    slot     = "scsi0"
+    type     = "cdrom"
+    iso      = "local:iso/${var.vms[count.index].iso}"
+    slot     = "ide2"
   }
   dynamic "disk" {
     for_each = var.vms[count.index].disks
@@ -51,7 +50,4 @@ resource "proxmox_vm_qemu" "instances" {
   }
 
   # TODO : PCI
-
-  # Remote automation
-  # user_data = file("${path.module}/automation/${var.vms[count.index].automation_script}")
 }
