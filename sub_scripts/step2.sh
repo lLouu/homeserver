@@ -89,11 +89,11 @@ echo "role:terraformVMProvider:Pool.Allocate,VM.Allocate,VM.Audit,VM.Clone,VM.Co
 echo "role:terraformSysProvider:Sys.Audit,Sys.Console,Sys.Modify:" | sudo tee -a /etc/pve/user.cfg > /dev/null
 
 ### /storage acl
-echo "acl:1:/storage:@TerraformProviders:terraformDataProvider" | sudo tee -a /etc/pve/user.cfg > /dev/null
+echo "acl:1:/:@TerraformProviders:terraformDataProvider" | sudo tee -a /etc/pve/user.cfg > /dev/null
 ### /vms acl
-echo "acl:1:/vms:@TerraformProviders:terraformVMProvider" | sudo tee -a /etc/pve/user.cfg > /dev/null
+echo "acl:1:/:@TerraformProviders:terraformVMProvider" | sudo tee -a /etc/pve/user.cfg > /dev/null
 ### /sys acl
-echo "acl:1:/vms:@TerraformProviders:terraformVMProvider" | sudo tee -a /etc/pve/user.cfg > /dev/null
+echo "acl:1:/:@TerraformProviders:terraformSysProvider" | sudo tee -a /etc/pve/user.cfg > /dev/null
 
 ### store secrets
 echo "terraform:$HASHED_PASS:" | sudo tee -a /etc/pve/priv/shadow.cfg > /dev/null

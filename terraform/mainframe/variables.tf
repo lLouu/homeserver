@@ -3,8 +3,8 @@ variable "proxmox" {
   type = object({
     node = string
     api  = object({
-      url           = bool
-      token_id      = number
+      url           = string
+      token_id      = string
       token_secret  = string
     })
   })
@@ -22,7 +22,7 @@ variable "vms" {
     iso      = string
     disks    = list(object({
       is_ssd   = bool
-      size     = number
+      size     = string
       storage  = string
       slot     = string
     }))

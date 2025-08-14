@@ -22,16 +22,16 @@ resource "proxmox_vm_qemu" "instances" {
 
   # Storage
   disk {
-    type     = "ide"
+    type     = "disk"
     storage  = "local"
     iso      = var.vms[count.index].iso
-    slot     = "virtio0"
+    slot     = "scsi0"
   }
   dynamic "disk" {
     for_each = var.vms[count.index].disks
 
     content {
-      type       = "scsi"
+      type       = "disk"
       emulatessd = disk.value.is_ssd
       size       = disk.value.size
       storage    = disk.value.storage
