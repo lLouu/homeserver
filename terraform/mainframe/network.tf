@@ -2,7 +2,7 @@ resource "proxmox_vm_qemu" "network_bridges" {
   count = length(var.network_bridge)
 
   name        = "net-${var.network_bridge[count.index]}"
-  target_node = var.proxmox_node
+  target_node = var.proxmox.node
   memory      = 256
   sockets     = 1
   cores       = 1
@@ -10,6 +10,7 @@ resource "proxmox_vm_qemu" "network_bridges" {
 
   network {
     model  = "virtio"
-    bridge = var.network_bridge[count.index]
+    id     = var.network_bridge[count.index].id
+    bridge = var.network_bridge[count.index].bridge
   }
 }

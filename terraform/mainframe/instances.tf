@@ -4,7 +4,7 @@ resource "proxmox_vm_qemu" "instances" {
   count = length(var.vms)
 
   # General
-  target_node = var.proxmox_node
+  target_node = var.proxmox.node
   name        = var.vms[count.index].name
   vmid        = var.vms[count.index].id
 
@@ -25,27 +25,28 @@ resource "proxmox_vm_qemu" "instances" {
     type     = "ide"
     storage  = "local"
     iso      = var.vms[count.index].iso
+    slot     = "virtio0"
   }
   dynamic "disk" {
     for_each = var.vms[count.index].disks
-    diskConf = each.value
 
     content {
       type       = "scsi"
-      emulatessd = diskConf.is_ssd
-      size       = diskConf.size
-      storage    = diskConf.storage
+      emulatessd = disk.value.is_ssd
+      size       = disk.value.size
+      storage    = disk.value.storage
+      slot       = disk.value.slot
     }
   }
 
   # Network
   dynamic "network" {
     for_each = var.vms[count.index].networks
-    inet = each.value
 
     content {
       model  = "virtio"
-      bridge = inet
+      bridge = network.value.bridge
+      id     = network.value.id
     }
   }
 

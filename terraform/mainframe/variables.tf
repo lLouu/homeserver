@@ -1,13 +1,13 @@
 # Proxmox configs (to be defined on script)
 variable "proxmox" {
-  type = list(object({
+  type = object({
     node = string
-    api  = list(object({
+    api  = object({
       url           = bool
       token_id      = number
       token_secret  = string
-    }))
-  }))
+    })
+  })
 }
 
 
@@ -24,8 +24,12 @@ variable "vms" {
       is_ssd   = bool
       size     = number
       storage  = string
+      slot     = string
     }))
-    networks = list(string) 
+    networks = list(object({
+      id = number
+      bridge = string
+    })) 
     automation_script = string
   }))
 }
@@ -33,6 +37,8 @@ variable "vms" {
 
 # Inets
 variable "network_bridge" {
-  type = list(string)
-  default = ["vmbr1", "vmbr2", "vmbr3", "vmbr4"]
+  type = list(object({
+      id = number
+      bridge = string
+  }))
 }
