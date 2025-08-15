@@ -7,6 +7,7 @@ resource "proxmox_vm_qemu" "instances" {
   target_node = var.proxmox.node
   name        = var.vms[count.index].name
   vmid        = var.vms[count.index].id
+  clone       = "${var.vms[count.index].os}-ansible-ready"
 
   # Ressources
   memory      = var.vms[count.index].ram
@@ -14,23 +15,18 @@ resource "proxmox_vm_qemu" "instances" {
   cores       = var.vms[count.index].cores
 
   # Behaviour
-  boot        = "order=scsi0;ide2"
+  boot        = "order=scsi0"
   scsihw      = "virtio-scsi-pci"
   agent       = 1
   onboot      = true
   vm_state    = "running"
 
   # Storage
-  disk {
-    type     = "cdrom"
-    iso      = "local:iso/${var.vms[count.index].iso}"
-    slot     = "ide2"
-  }
   dynamic "disk" {
     for_each = var.vms[count.index].disks
 
     content {
-      type       = "disk"
+      type       = "scsi"
       emulatessd = disk.value.is_ssd
       size       = disk.value.size
       storage    = disk.value.storage
@@ -39,15 +35,12 @@ resource "proxmox_vm_qemu" "instances" {
   }
 
   # Network
-  dynamic "network" {
-    for_each = var.vms[count.index].networks
-
-    content {
-      model  = "virtio"
-      bridge = network.value.bridge
-      id     = network.value.id
-    }
+  network {
+    id     = var.vms[count.index].network
+    model  = "virtio"
+    bridge = "vmbr${var.vms[count.index].network}"
   }
+  ipconfig0 = "10.1.${var.vms[count.index].network}.${var.vms[count.index].end_ip}/24,gw=10.1.${var.vms[count.index].network}.1"
 
   # TODO : PCI
 }

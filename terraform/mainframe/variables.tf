@@ -19,25 +19,32 @@ variable "vms" {
     ram      = number
     sockets  = number
     cores    = number
-    iso      = string
+    os       = string
     disks    = list(object({
       is_ssd   = bool
       size     = string
       storage  = string
       slot     = string
     }))
-    networks = list(object({
-      id = number
-      bridge = string
-    }))
+    network = number
+    end_ip   = number
   }))
 }
 
+variable "pfsense" {
+  type = object({
+    ram      = number
+    sockets  = number
+    cores    = number
+    disks    = list(object({
+      is_ssd   = bool
+      size     = string
+      storage  = string
+      slot     = string
+    }))
+  })
+}
 
-# Inets
-variable "network_bridge" {
-  type = list(object({
-      id = number
-      bridge = string
-  }))
+variable "networks" {
+  type = list(number)
 }

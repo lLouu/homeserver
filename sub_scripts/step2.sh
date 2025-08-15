@@ -171,11 +171,11 @@ if [[ ! -f "/var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso" || "$(s
    fi
 fi
 
-# Setting up terraform & Ansible
+# Setting up terraform, Packer & Ansible
 wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 newdpkg="deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main"
 echo "$newdpkg" | sudo tee /etc/apt/sources.list.d/tmp_hashicorp.list >/dev/null
-sudo apt update && sudo apt install terraform
+sudo apt update && sudo apt install terraform && sudo apt install packer
 sudo pip install ansible
 
 # Deploying initial state
@@ -188,6 +188,82 @@ sed -i "s/===IP===/$(ip a | grep "inet " | grep -v "127.0.0.1" | head -n1 | awk 
 sed -i "s/===ID===/terraform@pve!$TOKEN_ID/" proxmox.tfvars.json
 sed -i "s/===SECRET===/$TOKEN_SECRET/" proxmox.tfvars.json
 
+
+## Create network bridges and network configuration
+WAN=$(cat /etc/network/interfaces | grep 'dhcp' | awk '{print($2)}')
+sudo mv /etc/network/interfaces /etc/network/interfaces.old
+cat > /etc/network/interfaces <<EOF
+# Localhost
+auto lo
+iface lo inet loopback
+
+# WAN
+auto vmbr0
+iface vmbr0 inet dhcp
+    bridge_ports WAN
+    bridge_stp off
+    bridge_fd 0
+
+# guest network 10.1.1.0/24
+auto vmbr1
+iface vmbr1 inet manual
+    bridge_ports none
+    bridge_stp off
+    bridge_fd 0
+
+# inet
+auto vmbr2 10.1.2.0/24
+iface vmbr2 inet manual
+    bridge_ports none
+    bridge_stp off
+    bridge_fd 0
+
+# secnet
+auto vmbr3 10.1.3.0/24
+iface vmbr3 inet manual
+    address 10.1.3.10/24
+    gateway 10.1.4.1
+    bridge_ports none
+    bridge_stp off
+    bridge_fd 0
+
+# worknet
+auto vmbr4 10.1.4.0/24
+iface vmbr4 inet manual
+    bridge_ports none
+    bridge_stp off
+    bridge_fd 0
+
+# datanet
+auto vmbr5 10.1.5.0/24
+iface vmbr5 inet manual
+    bridge_ports none
+    bridge_stp off
+    bridge_fd 0
+EOF
+sudo ifreload -a
+
+## Do not expose host services on other places than vmbr4
+cat > /etc/pve/nodes/debian/host.fw <<EOF
+[OPTIONS]
+enable: 1
+policy_in: DROP
+policy_out: ACCEPT
+
+[RULES]
+IN ACCEPT -i vmbr0 -p icmp
+IN ACCEPT -i vmbr4 -p tcp --dport 22
+IN ACCEPT -i vmbr4 -p tcp --dport 8006
+EOF
+sudo systemctl restart pve-firewall
+
+## Create Pfsense packer config, and deploy the firewall
+
+## Create Packer template of alpine and deploy jenkins agent
+
+## Connect with ansible to setup jenkins for it to handle the other Packer and terraform edits
+
+
 terraform init
 terraform plan -var-file=proxmox.tfvars.json -var-file=init.tfvars.json -out plan
 terraform apply "plan"
@@ -196,7 +272,7 @@ cd ../../..
 sudo rm -r homeserver
 
 # Unsetting terraform & Ansible
-sudo apt remove terraform
+sudo apt remove terraform && sudo apt remove packer
 sudo rm /usr/share/keyrings/hashicorp-archive-keyring.gpg
 sudo rm /etc/apt/sources.list.d/tmp_hashicorp.list
 
