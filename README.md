@@ -16,11 +16,11 @@ On your server, install debian, preferablly without gui. Do the partitionning de
 
 ### Main installation
 ```
-curl -L -s https://raw.githubusercontent.com/lLouu/homeserver/main/install.sh | bash
+bash -c "$(curl -L -s https://raw.githubusercontent.com/lLouu/homeserver/main/install.sh)"
 ```
 ### Dev installation
 ```
-curl -L -s https://raw.githubusercontent.com/lLouu/homeserver/main/install.sh | bash -s -- -b dev
+bash -c "$(curl -L -s https://raw.githubusercontent.com/lLouu/homeserver/main/install.sh)" -- -b dev
 ```
 ### No-curl installation
 ```

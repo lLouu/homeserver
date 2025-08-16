@@ -110,11 +110,6 @@ echo "terraform@pve!$TOKEN_ID $TOKEN_SECRET" | sudo tee -a /etc/pve/priv/token.c
 
 echo "[+] API setted up"
 echo "[>] The terraform user password is '$NEW_PASS'"
-echo "[>] The API Auth header is 'Authorization: PVEAPIToken=terraform@pve!$TOKEN_ID=$TOKEN_SECRET'"
-echo "[>] The API token id is 'terraform@pve!$TOKEN_ID'"
-echo "[>] The API token secret is '$TOKEN_SECRET'"
-
-# Generate the tfvars.json with api data - TODO
 
 # Download ISO store on /var/lib/vz/template/iso/
 echo "[~] Downloading ISO Librarie"
@@ -148,6 +143,7 @@ fi
 if [[ ! -f "/var/lib/vz/template/iso/ubuntu-24.04.1-live-server-amd64.iso" || "$(sha256sum /var/lib/vz/template/iso/ubuntu-24.04.1-live-server-amd64.iso | awk '{print($1)}')" != "e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9" ]]; then
    echo "[~] Downloading Ubuntu Server ISO"
    wget https://old-releases.ubuntu.com/releases/noble/ubuntu-24.04.1-live-server-amd64.iso -q > /dev/null
+   sleep 3
    if [[ "$(sha256sum ubuntu-24.04.1-live-server-amd64.iso | awk '{print($1)}')" != "e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9 " ]]; then
       echo "[!] Could not download Ubuntu Server ISO"
       rm ubuntu-24.04.1-live-server-amd64.iso
@@ -171,80 +167,8 @@ if [[ ! -f "/var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso" || "$(s
    fi
 fi
 
-# Setting up terraform, Packer & Ansible
-wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-newdpkg="deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main"
-echo "$newdpkg" | sudo tee /etc/apt/sources.list.d/tmp_hashicorp.list >/dev/null
-sudo apt update && sudo apt install terraform && sudo apt install packer
-sudo pip install ansible
-
-# Deploying initial state
-git clone -b $branch https://github.com/llouu/homeserver --quiet >/dev/null 2>/dev/null
-cd homeserver/terraform/mainframe
-mv ../configs/proxmox.tfvars.json ./
-mv ../configs/init.tfvars.json ./
-sed -i "s/===HOSTNAME===/$(cat /etc/hostname)/" proxmox.tfvars.json
-sed -i "s/===IP===/$(ip a | grep "inet " | grep -v "127.0.0.1" | head -n1 | awk '{print($2)}' | cut -d'/' -f1)/" proxmox.tfvars.json
-sed -i "s/===ID===/terraform@pve!$TOKEN_ID/" proxmox.tfvars.json
-sed -i "s/===SECRET===/$TOKEN_SECRET/" proxmox.tfvars.json
-
-
-## Create network bridges and network configuration
-WAN=$(cat /etc/network/interfaces | grep 'dhcp' | awk '{print($2)}')
-sudo mv /etc/network/interfaces /etc/network/interfaces.old
-cat > /etc/network/interfaces <<EOF
-# Localhost
-auto lo
-iface lo inet loopback
-
-# WAN
-auto vmbr0
-iface vmbr0 inet dhcp
-    bridge_ports WAN
-    bridge_stp off
-    bridge_fd 0
-
-# guest network 10.1.1.0/24
-auto vmbr1
-iface vmbr1 inet manual
-    bridge_ports none
-    bridge_stp off
-    bridge_fd 0
-
-# inet
-auto vmbr2 10.1.2.0/24
-iface vmbr2 inet manual
-    bridge_ports none
-    bridge_stp off
-    bridge_fd 0
-
-# secnet
-auto vmbr3 10.1.3.0/24
-iface vmbr3 inet manual
-    address 10.1.3.10/24
-    gateway 10.1.4.1
-    bridge_ports none
-    bridge_stp off
-    bridge_fd 0
-
-# worknet
-auto vmbr4 10.1.4.0/24
-iface vmbr4 inet manual
-    bridge_ports none
-    bridge_stp off
-    bridge_fd 0
-
-# datanet
-auto vmbr5 10.1.5.0/24
-iface vmbr5 inet manual
-    bridge_ports none
-    bridge_stp off
-    bridge_fd 0
-EOF
-sudo ifreload -a
-
 ## Do not expose host services on other places than vmbr4
-cat > /etc/pve/nodes/debian/host.fw <<EOF
+cat > host.fw <<EOF
 [OPTIONS]
 enable: 1
 policy_in: DROP
@@ -255,7 +179,27 @@ IN ACCEPT -i vmbr0 -p icmp
 IN ACCEPT -i vmbr4 -p tcp --dport 22
 IN ACCEPT -i vmbr4 -p tcp --dport 8006
 EOF
+chmod 640 host.fw
+sudo chown root:www-data host.fw
+sudo mv host.fw /etc/pve/nodes/debian/
 sudo systemctl restart pve-firewall
+
+# Setting up terraform, Packer & Ansible
+wget -q -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+newdpkg="deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main"
+echo "$newdpkg" | sudo tee /etc/apt/sources.list.d/tmp_hashicorp.list >/dev/null
+sudo apt update -yq >/dev/null 2>/dev/null && sudo apt install terraform packer -yq >/dev/null 2>/dev/null
+sudo pip install ansible -q >/dev/null 2>/dev/null
+
+# Deploying initial state
+git clone -b $branch https://github.com/llouu/homeserver --quiet >/dev/null 2>/dev/null
+cd homeserver/terraform/mainframe
+mv ../configs/* ./
+mv ../packer/* ./
+sed -i "s/===HOSTNAME===/$(cat /etc/hostname)/" proxmox.tfvars.json
+sed -i "s/===IP===/$(hostname --ip-address)/" proxmox.tfvars.json
+sed -i "s/===ID===/terraform@pve!$TOKEN_ID/" proxmox.tfvars.json
+sed -i "s/===SECRET===/$TOKEN_SECRET/" proxmox.tfvars.json
 
 ## Create Pfsense packer config, and deploy the firewall
 

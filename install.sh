@@ -11,7 +11,7 @@ banner (){
         echo '/_/ /_/  \____//_/ /_/ /_/\___//____/ \___//_/    _____/ \___//_/     ';
         echo ""
         echo "Author : lLou_"
-        echo "Script version : V0.5"
+        echo "Script version : V0.7"
         echo ""
         echo ""
 }
@@ -223,8 +223,66 @@ dkms remove -m nvidia -v $version --all >/dev/null 2>/dev/null
 dkms install -m nvidia -v $version >/dev/null 2>/dev/null
 
 # Proxmox installation
+## Create network bridges and network configuration
+WAN=$(cat /etc/network/interfaces | grep 'dhcp' | awk '{print($2)}')
+sudo mv /etc/network/interfaces /etc/network/interfaces.old
+cat > interfaces <<EOF
+# Localhost
+auto lo
+iface lo inet loopback
+
+# WAN
+auto vmbr0
+iface vmbr0 inet dhcp
+    bridge_ports WAN
+    bridge_stp off
+    bridge_fd 0
+
+# guest network 10.1.1.0/24
+auto vmbr1
+iface vmbr1 inet manual
+    bridge_ports none
+    bridge_stp off
+    bridge_fd 0
+
+# inet
+auto vmbr2 10.1.2.0/24
+iface vmbr2 inet manual
+    bridge_ports none
+    bridge_stp off
+    bridge_fd 0
+
+# secnet
+auto vmbr3 10.1.3.0/24
+iface vmbr3 inet manual
+    address 10.1.3.10/24
+    bridge_ports none
+    bridge_stp off
+    bridge_fd 0
+    up ip route add 10.1.0.0/16 via 10.1.3.1 dev vmbr3
+
+# worknet
+auto vmbr4 10.1.4.0/24
+iface vmbr4 inet manual
+    bridge_ports none
+    bridge_stp off
+    bridge_fd 0
+
+# datanet
+auto vmbr5 10.1.5.0/24
+iface vmbr5 inet manual
+    bridge_ports none
+    bridge_stp off
+    bridge_fd 0
+EOF
+sed -i "s/WAN/$WAN/" interfaces
+chmod 644 interfaces
+sudo chown root:root interface
+sudo mv interfaces /etc/network/
+sudo ifreload -a
+
 ## Hostname management
-ip=$(ip a | grep "inet " | grep -v 127.0.0.1 | awk '{print($2)}' | cut -d'/' -f1)
+ip="10.1.3.10"
 if [[ "$(hostname --ip-address)" != "$ip" ]]; then
     echo "[~] Redefine hostname ip"
     sudo cp /etc/hosts /etc/hosts.bck

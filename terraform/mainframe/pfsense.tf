@@ -1,6 +1,6 @@
 # Terraform Proxmox Homeserver Mainframe V0.1
 
-resource "proxmox_vm_qemu" "instances" {
+resource "proxmox_vm_qemu" "pfsense" {
   # General
   target_node = var.proxmox.node
   name        = "pfSense"
