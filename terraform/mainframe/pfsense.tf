@@ -37,7 +37,7 @@ resource "proxmox_vm_qemu" "pfsense" {
     for_each = var.networks
 
     content {
-      id       = var.vms[count.index].network
+      id       = network.value
       model    = "virtio"
       bridge   = "vmbr${network.value}"
       firewall = true

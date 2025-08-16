@@ -1,3 +1,33 @@
+# Plugin
+packer {
+  required_plugins {
+    name = {
+      version = "~> 1"
+      source  = "github.com/hashicorp/proxmox"
+    }
+  }
+}
+
+# Variable Definitions
+variable "proxmox" {
+  type = object({
+    node = string
+    api  = object({
+      url           = string
+      token_id      = string
+      token_secret  = string
+    })
+  })
+}
+
+variable "networks" {
+  type    = list(number)
+}
+variable "ansible_pub" {
+  type = string
+}
+
+
 source "proxmox-iso" "pfsense-ansible-ready" {
 
     # Proxmox Connection Settings
@@ -16,10 +46,10 @@ source "proxmox-iso" "pfsense-ansible-ready" {
     cores       = 1
 
     # Behaviour
-    boot        = "c"
-    boot_wait   = "45s"
-    scsihw      = "virtio-scsi-pci"
-    qemu_agent  = true
+    boot            = "c"
+    boot_wait       = "45s"
+    scsi_controller = "virtio-scsi-pci"
+    qemu_agent      = true
 
     # VM OS Settings
     boot_iso {
@@ -47,7 +77,7 @@ source "proxmox-iso" "pfsense-ansible-ready" {
 
     # PACKER Boot Commands
     boot_command = [
-         "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><spacebar><enter><wait><left><enter><wait5><wait5><wait5><wait5><wait5><wait5><enter><wait>"
+         "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><spacebar><enter><wait><left><enter><wait5><wait5><wait5><wait5><wait5><wait5><enter><wait>",
          "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
          "1<enter><wait>n<enter><wait>em0<enter><wait>em1<enter><wait>em2<enter><wait>em3<enter><wait>em4<enter><wait>em5<enter><wait>y<enter><wait5><wait5><wait5>",
          "2<enter><wait>2<enter><wait>n<enter><wait>10.1.1.1<enter><wait>24<enter><wait><enter><wait>n<enter><wait><enter><wait>y<enter><wait>10.1.1.10<enter><wait>10.1.1.200<enter><wait>n<enter><wait5><enter><wait>",
@@ -75,9 +105,10 @@ source "proxmox-iso" "pfsense-ansible-ready" {
          "chmod 440 /etc/sudoers.d/ansible && chown root:root /etc/sudoers.d/ansible<enter><wait>",
 
     ]
+    ssh_username = "ansible"
 }
 
 build {
     name    = "pfsense-ansible-ready"
-    sources = ["source.proxmox.alpine-ansible-ready"]
+    sources = ["source.proxmox-iso.pfsense-ansible-ready"]
 }

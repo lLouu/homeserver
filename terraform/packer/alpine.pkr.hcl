@@ -1,3 +1,33 @@
+# Plugin
+packer {
+  required_plugins {
+    name = {
+      version = "~> 1"
+      source  = "github.com/hashicorp/proxmox"
+    }
+  }
+}
+
+# Variable Definitions
+variable "proxmox" {
+  type = object({
+    node = string
+    api  = object({
+      url           = string
+      token_id      = string
+      token_secret  = string
+    })
+  })
+}
+
+variable "root_pwd" {
+  type = string
+}
+variable "ansible_pub" {
+  type = string
+}
+
+
 source "proxmox-iso" "alpine-ansible-ready" {
 
     # Proxmox Connection Settings
@@ -16,10 +46,10 @@ source "proxmox-iso" "alpine-ansible-ready" {
     cores       = 1
 
     # Behaviour
-    boot        = "c"
-    boot_wait   = "5s"
-    scsihw      = "virtio-scsi-pci"
-    qemu_agent  = true
+    boot            = "c"
+    boot_wait       = "5s"
+    scsi_controller = "virtio-scsi-pci"
+    qemu_agent      = true
 
     # VM OS Settings
     boot_iso {
@@ -72,9 +102,10 @@ source "proxmox-iso" "alpine-ansible-ready" {
     # VM Cloud-Init Settings
     cloud_init              = true
     cloud_init_storage_pool = "local"
+    ssh_username            = "ansible"
 }
 
 build {
     name    = "alpine-ansible-ready"
-    sources = ["source.proxmox.alpine-ansible-ready"]
+    sources = ["source.proxmox-iso.alpine-ansible-ready"]
 }

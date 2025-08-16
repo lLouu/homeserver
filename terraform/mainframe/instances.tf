@@ -26,7 +26,7 @@ resource "proxmox_vm_qemu" "instances" {
     for_each = var.vms[count.index].disks
 
     content {
-      type       = "scsi"
+      type       = "disk"
       emulatessd = disk.value.is_ssd
       size       = disk.value.size
       storage    = disk.value.storage

@@ -168,6 +168,7 @@ if [[ ! -f "/var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso" || "$(s
 fi
 
 ## Do not expose host services on other places than vmbr4
+echo "[~] Avoiding access to host through outside"
 cat > host.fw <<EOF
 [OPTIONS]
 enable: 1
@@ -185,6 +186,7 @@ sudo mv host.fw /etc/pve/nodes/debian/
 sudo systemctl restart pve-firewall
 
 # Setting up terraform, Packer & Ansible
+echo "[~] Downloading terraform, packer and ansible"
 wget -q -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 newdpkg="deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main"
 echo "$newdpkg" | sudo tee /etc/apt/sources.list.d/tmp_hashicorp.list >/dev/null
@@ -192,6 +194,7 @@ sudo apt update -yq >/dev/null 2>/dev/null && sudo apt install terraform packer 
 sudo pip install ansible -q >/dev/null 2>/dev/null
 
 # Deploying initial state
+echo "[~] Fetching for configuration files"
 git clone -b $branch https://github.com/llouu/homeserver --quiet >/dev/null 2>/dev/null
 cd homeserver/terraform/mainframe
 mv ../configs/* ./
@@ -202,15 +205,29 @@ sed -i "s/===ID===/terraform@pve!$TOKEN_ID/" proxmox.tfvars.json
 sed -i "s/===SECRET===/$TOKEN_SECRET/" proxmox.tfvars.json
 
 ## Create Pfsense packer config, and deploy the firewall
+echo "[~] Creating firewall template"
+packer init pfsense.pkr.hcl >/dev/null
+packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$ANSIBLE_PUB" -var 'networks=[0,1,2,3,4,5]' pfsense.pkr.hcl >/dev/null
+
+echo "[~] Deploying firewall"
+terraform init >/dev/null
+echo '[]' | terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json -out plan >/dev/null
+terraform apply "plan"
+rm plan
 
 ## Create Packer template of alpine and deploy jenkins agent
+echo "[~] Creating Alpine template"
+packer init alpine.pkr.hcl >/dev/null
+packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$ANSIBLE_PUB" -var "root_pwd=$ROOT_PWD" alpine.pkr.hcl >/dev/null
+
+echo "[~] Deploying Jenkins agent"
+terraform init >/dev/null
+terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json --var-file=init.tfvars.json -out plan >/dev/null
+terraform apply "plan"
+rm plan
 
 ## Connect with ansible to setup jenkins for it to handle the other Packer and terraform edits
 
-
-terraform init
-terraform plan -var-file=proxmox.tfvars.json -var-file=init.tfvars.json -out plan
-terraform apply "plan"
 
 cd ../../..
 sudo rm -r homeserver
