@@ -240,46 +240,46 @@ iface vmbr0 inet dhcp
 
 # guest network 10.1.1.0/24
 auto vmbr1
-iface vmbr1 inet manual
+iface vmbr1 inet static
     bridge_ports none
     bridge_stp off
     bridge_fd 0
 
-# inet
-auto vmbr2 10.1.2.0/24
-iface vmbr2 inet manual
+# inet 10.1.2.0/24
+auto vmbr2
+iface vmbr2 inet static
     bridge_ports none
     bridge_stp off
     bridge_fd 0
 
-# secnet
-auto vmbr3 10.1.3.0/24
-iface vmbr3 inet manual
+# secnet 10.1.3.0/24
+auto vmbr3
+iface vmbr3 inet static
     address 10.1.3.10/24
     bridge_ports none
     bridge_stp off
     bridge_fd 0
     up ip route add 10.1.0.0/16 via 10.1.3.1 dev vmbr3
 
-# worknet
-auto vmbr4 10.1.4.0/24
-iface vmbr4 inet manual
+# worknet 10.1.4.0/24
+auto vmbr4
+iface vmbr4 inet static
     bridge_ports none
     bridge_stp off
     bridge_fd 0
 
-# datanet
-auto vmbr5 10.1.5.0/24
-iface vmbr5 inet manual
+# datanet 10.1.5.0/24
+auto vmbr5
+iface vmbr5 inet static
     bridge_ports none
     bridge_stp off
     bridge_fd 0
 EOF
 sed -i "s/WAN/$WAN/" interfaces
 chmod 644 interfaces
-sudo chown root:root interface
+sudo chown root:root interfaces
 sudo mv interfaces /etc/network/
-sudo ifreload -a
+sudo systemctl restart networking
 
 ## Hostname management
 ip="10.1.3.10"

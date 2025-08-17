@@ -58,6 +58,7 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 #######
 ## Clean previous step auto-relaunch
 export TERM=xterm
+echo 'export TERM=xterm' >> ~/.profile
 sudo rm /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf
 sed -i 's/~\/step2.sh//' ~/.bash_profile
 
@@ -144,7 +145,7 @@ if [[ ! -f "/var/lib/vz/template/iso/ubuntu-24.04.1-live-server-amd64.iso" || "$
    echo "[~] Downloading Ubuntu Server ISO"
    wget https://old-releases.ubuntu.com/releases/noble/ubuntu-24.04.1-live-server-amd64.iso -q > /dev/null
    sleep 3
-   if [[ "$(sha256sum ubuntu-24.04.1-live-server-amd64.iso | awk '{print($1)}')" != "e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9 " ]]; then
+   if [[ "$(sha256sum ubuntu-24.04.1-live-server-amd64.iso | awk '{print($1)}')" != "e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9" ]]; then
       echo "[!] Could not download Ubuntu Server ISO"
       rm ubuntu-24.04.1-live-server-amd64.iso
    else
@@ -204,10 +205,14 @@ sed -i "s/===IP===/$(hostname --ip-address)/" proxmox.tfvars.json
 sed -i "s/===ID===/terraform@pve!$TOKEN_ID/" proxmox.tfvars.json
 sed -i "s/===SECRET===/$TOKEN_SECRET/" proxmox.tfvars.json
 
+## Create Ansible rsa id
+ssh-keygen -f ansible -N "" -t rsa -b 8192 -q
+ROOT_PWD=$(openssl rand -base64 64)
+
 ## Create Pfsense packer config, and deploy the firewall
 echo "[~] Creating firewall template"
 packer init pfsense.pkr.hcl >/dev/null
-packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$ANSIBLE_PUB" -var 'networks=[0,1,2,3,4,5]' pfsense.pkr.hcl >/dev/null
+packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub)" -var 'networks=[0,1,2,3,4,5]' pfsense.pkr.hcl >/dev/null
 
 echo "[~] Deploying firewall"
 terraform init >/dev/null
@@ -218,7 +223,7 @@ rm plan
 ## Create Packer template of alpine and deploy jenkins agent
 echo "[~] Creating Alpine template"
 packer init alpine.pkr.hcl >/dev/null
-packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$ANSIBLE_PUB" -var "root_pwd=$ROOT_PWD" alpine.pkr.hcl >/dev/null
+packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub)" -var "root_pwd=$ROOT_PWD" alpine.pkr.hcl >/dev/null
 
 echo "[~] Deploying Jenkins agent"
 terraform init >/dev/null
