@@ -84,7 +84,7 @@ source "proxmox-iso" "alpine-ansible-ready" {
         "sda<enter><wait>sys<enter><wait>y<enter><wait5><wait5>",
         "reboot<enter><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
 
-        "root<enter><wait>${var.root_pwd}<enter><wait>"
+        "root<enter><wait>${var.root_pwd}<enter><wait>",
 
         "adduser -s /bin/sh ansible -D<enter><wait>",
         "mkdir /home/ansible/.ssh<enter><wait>",

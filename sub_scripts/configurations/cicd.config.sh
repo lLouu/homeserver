@@ -57,117 +57,25 @@ java -jar jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(sudo cat /var/
   <keepDependencies>false</keepDependencies>
   <properties/>
   
-  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@latest">
-    <script>
-    <![CDATA[
-pipeline {
-    agent any
-    triggers {
-        pollSCM('H * * * *')
-    }
-
-    stages {
-        stage('Lookout environement') {
-            steps {
-                script {
-                    env.BRANCH = readFile('/var/lib/jenkins/.branch').trim()
-                    env.REPOSITORY = readFile('/var/lib/jenkins/.repository').trim()
-                    env.ANSIBLE_PUB = readFile('/var/lib/jenkins/.ssh/id_rsa.pub').trim()
-                    env.CACHE = readFile('/var/lib/jenkins/.cache_homeserver_build').trim()
-                }
-            }
-        }
-
-        stage('Checkout') {
-            steps {
-                git branch: "\${env.BRANCH}",
-                    url: "\${env.REPOSITORY}"
-            }
-        }
-
-        stage('Prepare Workspace') {
-            steps {
-                script {
-                    sh '''
-                        mkdir -p work
-                        cp -r terraform/ansible/* work/
-                        cp -r terraform/config/* work/
-                        cp -r terraform/mainframe/* work/
-                        cp -r terraform/packer/* work/
-                    '''
-                }
-            }
-        }
-
-        stage('Packer Builds') {
-            steps {
-                withCredentials([string(credentialsId: 'root-password', variable: 'ROOT_PWD')]) {
-                    script {
-                        def packerDir = "work"
-                        def executedFile = "\${packerDir}/.executed_packer"
-                        sh "touch \${executedFile}"
-
-                        def ignored = sh(script: 'echo "\$CACHE"', returnStdout: true).trim().split()
-                        def files = sh(script: "ls \${packerDir}/*.pkr.hcl", returnStdout: true).trim().split()
-
-                        for (file in files) {
-                            def base = file.tokenize('/').last()
-                            if (!(base in ignored)) {
-                                if (!readFile(executedFile).contains(base)) {
-                                    sh '''
-                                        packer build -var-file="work/proxmox.tfvars.json" -var "ansible_pub=\$ANSIBLE_PUB" -var "root_pwd=\$ROOT_PWD" \${file}
-                                        echo \${base} >> \${executedFile}
-                                    '''
-
-                                }
-                            }
-                        }
-                        def newCache = sh(script: 'echo "\$CACHE" && cat \${executedFile}', returnStdout: true).trim()
-                        writeFile file: "/var/lib/jenkins/.cache_homeserver_build", text: newCache
-                    }
-                }
-            }
-        }
-
-        stage('Terraform Apply') {
-            steps {
-                withCredentials([file(credentialsId: 'proxmox-tfvars', variable: 'PROXMOX_TFVARS')]) {
-                    dir("work") {
-                        sh '''
-                            terraform init
-                            terraform plan --var-file=\$PROXMOX_TFVARS --var-file=pfsense.tfvars.json --var-file=complete.tfvars.json -out plan
-                            terraform apply -auto-approve plan
-                            rm plan
-                        '''
-                    }
-                }
-            }
-        }
-
-        stage('Run Ansible Installation') {
-            steps {
-                sshagent(credentials: ['ansible-key']) {
-                    dir("work") {
-                        sh "ansible-playbook installation.yml -i hosts"
-                    }
-                }
-            }
-        }
-
-        stage('Run Ansible Configuration') {
-            steps {
-                sshagent(credentials: ['ansible-key']) {
-                    dir("work") {
-                        sh "ansible-playbook configuration/*.yml -i hosts"
-                    }
-                }
-            }
-        }
-    }
-}
-    ]]>
-    </script>
-    <sandbox>true</sandbox>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@latest">
+    <scm class="hudson.plugins.git.GitSCM" plugin="git@latest">
+      <configVersion>2</configVersion>
+      <userRemoteConfigs>
+        <hudson.plugins.git.UserRemoteConfig>
+          <url>$(cat /var/lib/jenkins/.repository)</url>
+        </hudson.plugins.git.UserRemoteConfig>
+      </userRemoteConfigs>
+      <branches>
+        <hudson.plugins.git.BranchSpec>
+          <name>$(cat /var/lib/jenkins/.branch)</name>
+        </hudson.plugins.git.BranchSpec>
+      </branches>
+      <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+      <submoduleCfg class="list"/>
+      <extensions/>
+    </scm>
+    <scriptPath>Jenkinsfile</scriptPath>
+    <lightweight>true</lightweight>
   </definition>
   <triggers/>
 </flow-definition>

@@ -197,7 +197,7 @@ sudo pip install ansible -q >/dev/null 2>/dev/null
 # Deploying initial state
 echo "[~] Fetching for configuration files"
 git clone -b $branch https://github.com/llouu/homeserver --quiet >/dev/null 2>/dev/null
-cd homeserver/terraform/mainframe
+cd homeserver/jenkins/terraform
 mv ../configs/* ./
 mv ../packer/* ./
 sed -i "s/===HOSTNAME===/$(cat /etc/hostname)/" proxmox.tfvars.json
@@ -207,7 +207,9 @@ sed -i "s/===SECRET===/$TOKEN_SECRET/" proxmox.tfvars.json
 
 ## Create Ansible rsa id
 ssh-keygen -f ansible -N "" -t rsa -b 8192 -q
+sed -i "s/$(whoami)/ansible/" ansible.pub
 ROOT_PWD=$(openssl rand -base64 64)
+echo $ROOT_PWD | sudo tee /root/.virt_roots.pwd >/dev/null && sudo chmod 400 /root/.virt_roots.pwd && sudo chown root:root /root/.virt_roots.pwd
 
 ## Create Pfsense packer config, and deploy the firewall
 echo "[~] Creating firewall template"
@@ -217,7 +219,7 @@ packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub
 echo "[~] Deploying firewall"
 terraform init >/dev/null
 echo '[]' | terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json -out plan >/dev/null
-terraform apply "plan"
+terraform apply "plan" >/dev/null
 rm plan
 
 ## Create Packer template of alpine and deploy jenkins agent
@@ -228,7 +230,7 @@ packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub
 echo "[~] Deploying Jenkins agent"
 terraform init >/dev/null
 terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json --var-file=init.tfvars.json -out plan >/dev/null
-terraform apply "plan"
+terraform apply "plan" >/dev/null
 rm plan
 
 ## Connect with ansible to setup jenkins for it to handle the other Packer and terraform edits
@@ -238,11 +240,12 @@ cd ../../..
 sudo rm -r homeserver
 
 # Unsetting terraform & Ansible
-sudo apt remove terraform && sudo apt remove packer
+sudo apt -yq remove terraform packer >/dev/null 2>/dev/null
+sudo pip uninstall ansible -yq >/dev/null 2>/dev/null
 sudo rm /usr/share/keyrings/hashicorp-archive-keyring.gpg
 sudo rm /etc/apt/sources.list.d/tmp_hashicorp.list
 
-sudo apt autoremove
+sudo apt -yq autoremove >/dev/null 2>/dev/null
 
 echo "[*] Script executed in $(date -d@$(($(date +%s)-$start)) -u +%H:%M:%S)"
 stop
