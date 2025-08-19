@@ -54,6 +54,10 @@ CICD is enabled, allowing to modify allongisde the git repo the structure and co
 ### Terraform & Packer
 Packer creates ansible-ready templates for the different iso, letting it with an ansible user that can connect by ssh only with certificate. The network configuration for them is a single bridge. It is also responsible of initial configuration of the Pfsense.<br>
 Terraform then uses these modeles to deploy the architecture of the homeserver.
+### Ansible
+Ansible is responsible for software configuration. Once a server is up and running, it connects to it, installs the software, and once installed limits its rights to be able only to manage the configurations.
+### Initial deployment
+Before Jenkins gets deployed, the host proxmox node takes the role of the CICD agent, deploying the initial configuration of the pfsense + the jenkins agent. It forward then the ansible private key to jenkins before destroying CICD related stuff. Starting there, Jenkins takes the hand to deploy the dynamic architcture
 
 ## ISO library
 - alpine-virt-3.21.2-aarch64.iso

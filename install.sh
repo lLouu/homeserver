@@ -11,7 +11,7 @@ banner (){
         echo '/_/ /_/  \____//_/ /_/ /_/\___//____/ \___//_/    _____/ \___//_/     ';
         echo ""
         echo "Author : lLou_"
-        echo "Script version : V0.7"
+        echo "Script version : V0.8"
         echo ""
         echo ""
 }

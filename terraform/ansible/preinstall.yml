@@ -1,0 +1,18 @@
+- name: Install Jenkins
+  hosts: cicd
+  tasks:
+  - name: Delete undeleted script
+    file:
+      path: /tmp/cicd.install.sh
+      state: absent
+  - name: Download install script
+    get_url:
+      url: https://raw.githubusercontent.com/llouu/homeserver/{{ branch }}/sub_scripts/installations/cicd.install.sh
+      dest: /tmp/cicd.install.sh
+      mode: 0755
+  - name: Run install script
+    command: /tmp/cicd.install.sh
+  - name: Delete script
+    file:
+      path: /tmp/cicd.install.sh
+      state: absent
