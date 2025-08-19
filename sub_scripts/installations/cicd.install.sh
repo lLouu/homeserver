@@ -4,7 +4,23 @@ sudo wget -O /etc/apk/keys/jenkins-ci.org.key https://pkg.jenkins.io/redhat-stab
 if [[ ! "$(cat /etc/apk/repositories | grep http://dl-cdn.alpinelinux.org/alpine/v3.16/community)" ]]; then echo "http://dl-cdn.alpinelinux.org/alpine/v3.16/community" | sudo tee -a /etc/apk/repositories; fi
 if [[ ! "$(cat /etc/apk/repositories | grep https://pkg.jenkins.io/redhat-stable)" ]]; then echo "https://pkg.jenkins.io/redhat-stable" | sudo tee -a /etc/apk/repositories; fi
 sudo apk update && sudo apk add jenkins openjdk21 openjdk21-jre packer terraform python3 py3-pip curl jq
+for py in $(ls /usr/lib/ | grep python3.);do
+    if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
+        sudo mv /usr/lib/$py/EXTERNALLY-MANAGED /usr/lib/$py/EXTERNALLY-MANAGED.old
+    fi
+done
 sudo pip install ansible
+
+# Update to last war version
+wget https://get.jenkins.io/war-stable/latest/jenkins.war -O /tmp/jenkins.war 
+for war in $(sudo find / -name jenkins.war);do
+    bck="$war.$(date "+%Y-%m-%d").bck"
+    sudo mv $war $bck
+    sudo cp /tmp/jenkins.war $war
+    sudo chmod --reference=$bck $war
+    sudo chown --reference=$bck $war
+done
+rm /tmp/jenkins.war
 
 sudo rc-service jenkins -S start
 sudo rc-update add jenkins

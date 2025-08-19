@@ -15,6 +15,13 @@
       dest: /var/lib/jenkins/.repository
       mode: 0744
       owner: jenkins:jenkins
+  - name: Prepare caching
+    become: yes
+    file:
+      path: /var/lib/jenkins/.cache_homeserver_build
+      state: file
+      mode: 0744
+      owner: jenkins:jenkins
   - name: Create .ssh folder
     become: yes
     file:
