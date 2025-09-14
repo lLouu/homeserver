@@ -115,10 +115,10 @@ echo "[>] The terraform user password is '$NEW_PASS'"
 # Download ISO store on /var/lib/vz/template/iso/
 echo "[~] Downloading ISO Librarie"
 ## Alpine
-if [[ ! -f "/var/lib/vz/template/iso/alpine-virt-3.21.2-aarch64.iso" || "$(sha256sum /var/lib/vz/template/iso/alpine-virt-3.21.2-aarch64.iso | awk '{print($1)}')" != "8857deccf90f40eada1ab82965819d43d68d10463a09867234ca59f58efe669f" ]]; then
+if [[ ! -f "/var/lib/vz/template/iso/alpine-virt-3.21.2-aarch64.iso" || "$(sha256sum /var/lib/vz/template/iso/alpine-virt-3.21.2-aarch64.iso | awk '{print($1)}')" != "42918974513750a6923393f3074c3bb226badfce4a0d0f35f90377fd789fda1f" ]]; then
    echo "[~] Downloading Alpine ISO"
-   wget https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/aarch64/alpine-virt-3.21.2-aarch64.iso -q > /dev/null
-   if [[ "$(sha256sum alpine-virt-3.21.2-aarch64.iso | awk '{print($1)}')" != "8857deccf90f40eada1ab82965819d43d68d10463a09867234ca59f58efe669f" ]]; then
+   wget https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-virt-3.22.1-x86_64.iso -q > /dev/null
+   if [[ "$(sha256sum alpine-virt-3.21.2-aarch64.iso | awk '{print($1)}')" != "42918974513750a6923393f3074c3bb226badfce4a0d0f35f90377fd789fda1f" ]]; then
       echo "[!] Could not download Alpine ISO"
       rm alpine-virt-3.21.2-aarch64.iso
    else

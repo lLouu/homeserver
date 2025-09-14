@@ -1,7 +1,10 @@
 #!/bin/sh
-wget http://localhost:8080/jnlpJars/jenkins-cli.jar
+if [[ -f "/tmp/jenkins-cli.jar" ]]; then rm /tmp/jenkins-cli.jar; fi
+wget http://localhost:8080/jnlpJars/jenkins-cli.jar -O /tmp/jenkins-cli.jar
+CLI="java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth admin:\$(sudo cat /var/lib/jenkins/secrets/initialAdminPassword)"
+
 ## Plugin installation
-java -jar jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(sudo cat /var/lib/jenkins/secrets/initialAdminPassword) install-plugin workflow-job workflow-aggregator workflow-cps git credentials plain-credentials ssh-credentials ssh-agent
+$CLI install-plugin workflow-job workflow-aggregator workflow-cps git credentials plain-credentials ssh-credentials ssh-agent
 
 ## Restart jenkins for plugin loads
 sudo rc-service jenkins restart
@@ -19,7 +22,7 @@ curl -s -b cookies.jar -u admin:$(sudo cat /var/lib/jenkins/secrets/initialAdmin
   <username>ansible</username>
   <privateKeySource class="com.cloudbees.plugins.credentials.impl.BasicSSHUserPrivateKey\$DirectEntryPrivateKeySource">
     <privateKey>
-      $(cat /var/lib/jenkins/.ssh/id_rsa)
+      $(sudo cat /var/lib/jenkins/.ssh/id_rsa)
     </privateKey>
   </privateKeySource>
 </com.cloudbees.plugins.credentials.impl.BasicSSHUserPrivateKey>
@@ -33,7 +36,7 @@ curl -s -b cookies.jar -u admin:$(sudo cat /var/lib/jenkins/secrets/initialAdmin
   <description>Proxmox Terraform Variables</description>
   <fileName>proxmox.tfvars.json</fileName>
   <secretBytes>
-      $(base64 -w0 /var/lib/jenkins/.tmp/proxmox.tfvars.json)
+      $(sudo base64 -w0 /var/lib/jenkins/.tmp/proxmox.tfvars.json)
   </secretBytes>
 </org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>
 EOF
@@ -44,14 +47,20 @@ curl -s -b cookies.jar -u admin:$(sudo cat /var/lib/jenkins/secrets/initialAdmin
   <scope>GLOBAL</scope>
   <id>root-password</id>
   <description>Root Password</description>
-  <secret>$(cat /var/lib/jenkins/.tmp/root.pwd)</secret>
+  <secret>$(sudo cat /var/lib/jenkins/.tmp/root.pwd)</secret>
 </org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl>
 EOF
 
 rm cookies.jar
 
 ## Deploy pipeline
-java -jar jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(sudo cat /var/lib/jenkins/secrets/initialAdminPassword) create-job homeserver <<EOF
+if [[ $CLI get-job homeserver | grep ERROR ]]; then
+  action="create-job"
+else
+  action="update-job"
+fi
+
+$CLI $action homeserver <<EOF
 <flow-definition plugin="workflow-job@latest">
   <description>Homeserver build pipeline</description>
   <keepDependencies>false</keepDependencies>
@@ -62,12 +71,12 @@ java -jar jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(sudo cat /var/
       <configVersion>2</configVersion>
       <userRemoteConfigs>
         <hudson.plugins.git.UserRemoteConfig>
-          <url>$(cat /var/lib/jenkins/.repository)</url>
+          <url>$(sudo cat /var/lib/jenkins/.repository)</url>
         </hudson.plugins.git.UserRemoteConfig>
       </userRemoteConfigs>
       <branches>
         <hudson.plugins.git.BranchSpec>
-          <name>$(cat /var/lib/jenkins/.branch)</name>
+          <name>$(sudo cat /var/lib/jenkins/.branch)</name>
         </hudson.plugins.git.BranchSpec>
       </branches>
       <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
@@ -82,4 +91,4 @@ java -jar jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(sudo cat /var/
 EOF
 
 ## Run first time pipeline
-java -jar jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(sudo cat /var/lib/jenkins/secrets/initialAdminPassword) build homeserver
+$CLI build homeserver
