@@ -24,5 +24,10 @@ for war in $(sudo find / -name jenkins.war);do
 done
 rm /tmp/jenkins.war.tmp
 
+# Define /tmp size
+sudo rc-service jenkins -s stop
+sudo umount /tmp
+sudo mount -t tmpfs -o size=8G,mode=1777 overflow /tmp
+
 sudo rc-service jenkins -S start
 sudo rc-update add jenkins

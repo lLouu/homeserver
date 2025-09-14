@@ -1,7 +1,7 @@
 #!/bin/sh
 if [[ -f "/tmp/jenkins-cli.jar" ]]; then rm /tmp/jenkins-cli.jar; fi
 wget http://localhost:8080/jnlpJars/jenkins-cli.jar -O /tmp/jenkins-cli.jar
-CLI="java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth admin:\$(sudo cat /var/lib/jenkins/secrets/initialAdminPassword)"
+CLI="java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(sudo cat /var/lib/jenkins/secrets/initialAdminPassword)"
 
 ## Plugin installation
 $CLI install-plugin workflow-job workflow-aggregator workflow-cps git credentials plain-credentials ssh-credentials ssh-agent
@@ -54,10 +54,10 @@ EOF
 rm cookies.jar
 
 ## Deploy pipeline
-if [[ $CLI get-job homeserver | grep ERROR ]]; then
-  action="create-job"
-else
+if [[ "$($CLI get-job homeserver 2>/dev/null)" ]]; then
   action="update-job"
+else
+  action="create-job"
 fi
 
 $CLI $action homeserver <<EOF
