@@ -11,7 +11,9 @@
       dest: /tmp/cicd.install.sh
       mode: 0755
   - name: Run install script
-    command: /tmp/cicd.install.sh
+    shell: /tmp/cicd.install.sh
+    failed_when: false
+    register: script_output
   - name: Delete script
     file:
       path: /tmp/cicd.install.sh

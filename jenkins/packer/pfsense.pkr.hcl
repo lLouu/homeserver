@@ -77,6 +77,7 @@ source "proxmox-iso" "pfsense-ansible-ready" {
 
     # PACKER Boot Commands
     boot_command = [
+         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>", 
          "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><spacebar><enter><wait><left><enter><wait5><wait5><wait5><wait5><wait5><wait5><enter><wait>",
          "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
          "1<enter><wait>n<enter><wait>em0<enter><wait>em1<enter><wait>em2<enter><wait>em3<enter><wait>em4<enter><wait>em5<enter><wait>y<enter><wait5><wait5><wait5>",
@@ -98,12 +99,14 @@ source "proxmox-iso" "pfsense-ansible-ready" {
          "echo 'Include /etc/ssh/sshd_config.d/*' >> /etc/ssh/sshd_config<enter><wait>",
          "mkdir /etc/ssh/sshd_config.d<enter><wait>",
          "cat > /etc/ssh/sshd_config.d/first_setup.conf <<EOF<enter>Port 22<enter>Protocol 2<enter>PermitRootLogin no<enter>PasswordAuthentication no<enter>PubkeyAuthentication yes<enter>ChallengeResponseAuthentication no<enter>UsePAM yes<enter>EOF<enter><wait>",
-         "service sshd restart<enter><wait>",
+         "service sshd onerestart<enter><wait>",
          
-         "echo 'y' | pkg install sudo python3 py3-pip<enter><wait>",
-         "echo 'ansible ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/ansible<enter><wait>",
-         "chmod 440 /etc/sudoers.d/ansible && chown root:root /etc/sudoers.d/ansible<enter><wait>",
-
+         "echo 'y' | pkg install sudo python311-3.11.6<enter><wait>",
+         "echo 'ansible ALL=(ALL) NOPASSWD: ALL' > /usr/local/etc/sudoers.d/ansible<enter><wait>",
+         "chmod 440 /usr/local/etc/sudoers.d/ansible && chown root:wheel /usr/local/etc/sudoers.d/ansible<enter><wait>",
+         "sed -i '' 's/<unbound>/<unbound>\n<forwarding\/>/' /cf/conf/config.xml<enter><wait>",
+         "exit<enter><wait>",
+         "5<enter><wait5><wait5><wait5><wait5><wait5><wait5>"
     ]
     ssh_username = "ansible"
 }

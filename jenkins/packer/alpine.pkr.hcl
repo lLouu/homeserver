@@ -72,6 +72,7 @@ source "proxmox-iso" "alpine-ansible-ready" {
 
     # PACKER Boot Commands
     boot_command = [
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "root<enter><wait>",
         "ifconfig eth0 up && udhcpc -i eth0<enter><wait5>",
         "setup-alpine<enter><wait>",
@@ -87,11 +88,12 @@ source "proxmox-iso" "alpine-ansible-ready" {
         "root<enter><wait>${var.root_pwd}<enter><wait>",
 
         "adduser -s /bin/sh ansible -D<enter><wait>",
+        "sed -i 's/ansible:!/ansible:*/' /etc/shadow",
         "mkdir /home/ansible/.ssh<enter><wait>",
         "echo '${var.ansible_pub}' > /home/ansible/.ssh/authorized_keys<enter><wait>",
         "chmod 700 /home/ansible/.ssh && chmod 600 /home/ansible/.ssh/authorized_keys<enter><wait>",
         "chown ansible:ansible /home/ansible/.ssh /home/ansible/.ssh/authorized_keys<enter><wait>",
-        "cat > /etc/ssh/sshd_config.d/first_setup.conf <<EOF<enter>Port 22<enter>Protocol 2<enter>PermitRootLogin no<enter>PasswordAuthentication no<enter>PubkeyAuthentication yes<enter>ChallengeResponseAuthentication no<enter>UsePAM yes<enter>EOF<enter><wait>",
+        "cat > /etc/ssh/sshd_config.d/first_setup.conf <<EOF<enter>Port 22<enter>Protocol 2<enter>PermitRootLogin no<enter>PasswordAuthentication no<enter>PubkeyAuthentication yes<enter>ChallengeResponseAuthentication no<enter>EOF<enter><wait>",
         "service sshd restart<enter><wait>",
         
         "sed -i 's/^#//' /etc/apk/repositories<enter><wait>",

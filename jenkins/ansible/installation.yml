@@ -33,7 +33,9 @@
       dest: /tmp/{{ inventory_hostname }}.install.sh
       mode: '0755'
   - name: Run install script
-    command: /tmp/{{ inventory_hostname }}.install.sh
+    shell: /tmp/{{ inventory_hostname }}.install.sh
+    failed_when: false
+    register: script_output
   - name: Delete script
     file:
       path: /tmp/{{ inventory_hostname }}.install.sh

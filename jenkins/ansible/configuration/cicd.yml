@@ -4,66 +4,75 @@
   - name: Provide branch
     become: yes
     copy:
-      content: {{ branch }}
+      content: "{{ branch }}"
       dest: /var/lib/jenkins/.branch
       mode: 0744
-      owner: jenkins:jenkins
+      owner: jenkins
+      group: jenkins
   - name: Provide repository
     become: yes
     copy:
-      content: {{ repository }}
+      content: "{{ repository }}"
       dest: /var/lib/jenkins/.repository
       mode: 0744
-      owner: jenkins:jenkins
+      owner: jenkins
+      group: jenkins
   - name: Prepare caching
     become: yes
     file:
       path: /var/lib/jenkins/.cache_homeserver_build
       state: file
       mode: 0744
-      owner: jenkins:jenkins
+      owner: jenkins
+      group: jenkins
   - name: Create .ssh folder
     become: yes
     file:
       path: /var/lib/jenkins/.ssh
       state: directory
       mode: 0700
-      owner: jenkins:jenkins
+      owner: jenkins
+      group: jenkins
   - name: Provide id_rsa
     become: yes
     copy: 
-      content: {{ ssh_priv }}
+      content: "{{ ssh_priv }}"
       dest: /var/lib/jenkins/.ssh/id_rsa
       mode: 0600
-      owner: jenkins:jenkins
+      owner: jenkins
+      group: jenkins
   - name: Provide id_rsa.pub
     become: yes
     copy: 
-      content: {{ ssh_pub }}
+      content: "{{ ssh_pub }}"
       dest: /var/lib/jenkins/.ssh/id_rsa.pub
       mode: 0600
-      owner: jenkins:jenkins
+      owner: jenkins
+      group: jenkins
   - name: Create .tmp confidential folder
     become: yes
     file:
       path: /var/lib/jenkins/.tmp
       state: directory
       mode: 0700
-      owner: jenkins:jenkins
+      owner: jenkins
+      group: jenkins
   - name: Provide proxmox.tfvars.json
     become: yes
     copy: 
-      content: {{ proxmox_config }}
+      content: "{{ proxmox_config }}"
       dest: /var/lib/jenkins/.tmp/proxmox.tfvars.json
       mode: 0600
-      owner: jenkins:jenkins
+      owner: jenkins
+      group: jenkins
   - name: Provide root_pwd
     become: yes
     copy: 
-      content: {{ root_pwd }}
+      content: "{{ root_pwd }}"
       dest: /var/lib/jenkins/.tmp/root.pwd
       mode: 0600
-      owner: jenkins:jenkins
+      owner: jenkins
+      group: jenkins
 
   - name: Delete undeleted script
     file:
@@ -75,7 +84,9 @@
       dest: /tmp/cicd.config.sh
       mode: 0755
   - name: Run config script
-    command: /tmp/cicd.config.sh
+    shell: /tmp/cicd.config.sh
+    failed_when: false
+    register: script_output
   - name: Delete script
     file:
       path: /tmp/cicd.config.sh
