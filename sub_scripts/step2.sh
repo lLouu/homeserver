@@ -24,6 +24,7 @@ printf "Defaults\ttimestamp_timeout=-1\n" | sudo tee /etc/sudoers.d/tmp > /dev/n
 branch="main"
 start=$(date +%s)
 nologs=""
+repository="/llouu/homeserver" # TODO : make it an option
 
 POSITIONAL_ARGS=()
 ORIGINAL_ARGS=$@
@@ -200,6 +201,7 @@ git clone -b $branch https://github.com/llouu/homeserver --quiet >/dev/null 2>/d
 cd homeserver/jenkins/terraform
 mv ../configs/* ./
 mv ../packer/* ./
+mv ../ansible/* ./
 sed -i "s/===HOSTNAME===/$(cat /etc/hostname)/" proxmox.tfvars.json
 sed -i "s/===IP===/$(hostname --ip-address)/" proxmox.tfvars.json
 sed -i "s/===ID===/terraform@pve!$TOKEN_ID/" proxmox.tfvars.json
@@ -234,7 +236,7 @@ terraform apply "plan" >/dev/null
 rm plan
 
 ## Connect with ansible to setup jenkins for it to handle the other Packer and terraform edits
-
+ansible-playbook -i hosts.yml -u ansible --key-file ansible preinstall.yml -e "branch=$branch repository=$repository ssh_priv=$(cat ansible) ssh_pub=$(cat ansible.pub) proxmox_config=$(cat proxmox.tfvars.json) root_pwd=$ROOT_PWD"
 
 cd ../../..
 sudo rm -r homeserver

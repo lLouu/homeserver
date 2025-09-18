@@ -7,7 +7,7 @@
       state: absent
   - name: Download install script
     get_url:
-      url: https://raw.githubusercontent.com/llouu/homeserver/{{ branch }}/sub_scripts/installations/cicd.install.sh
+      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/installations/cicd.install.sh
       dest: /tmp/cicd.install.sh
       mode: 0755
   - name: Run install script
@@ -18,3 +18,149 @@
     file:
       path: /tmp/cicd.install.sh
       state: absent
+
+- name: Feed Jenkins
+  hosts: cicd
+  tasks:
+  - name: Provide branch
+    become: yes
+    copy:
+      content: "{{ branch }}"
+      dest: /var/lib/jenkins/.branch
+      mode: 0744
+      owner: jenkins
+      group: jenkins
+  - name: Provide repository
+    become: yes
+    copy:
+      content: "{{ repository }}"
+      dest: /var/lib/jenkins/.repository
+      mode: 0744
+      owner: jenkins
+      group: jenkins
+  - name: Prepare caching
+    become: yes
+    file:
+      path: /var/lib/jenkins/.cache_homeserver_build
+      state: file
+      mode: 0744
+      owner: jenkins
+      group: jenkins
+  - name: Create .ssh folder
+    become: yes
+    file:
+      path: /var/lib/jenkins/.ssh
+      state: directory
+      mode: 0700
+      owner: jenkins
+      group: jenkins
+  - name: Provide id_rsa
+    become: yes
+    copy: 
+      content: "{{ ssh_priv }}"
+      dest: /var/lib/jenkins/.ssh/id_rsa
+      mode: 0600
+      owner: jenkins
+      group: jenkins
+  - name: Provide id_rsa.pub
+    become: yes
+    copy: 
+      content: "{{ ssh_pub }}"
+      dest: /var/lib/jenkins/.ssh/id_rsa.pub
+      mode: 0600
+      owner: jenkins
+      group: jenkins
+  - name: Create .tmp confidential folder
+    become: yes
+    file:
+      path: /var/lib/jenkins/.tmp
+      state: directory
+      mode: 0700
+      owner: jenkins
+      group: jenkins
+  - name: Provide proxmox.tfvars.json
+    become: yes
+    copy: 
+      content: "{{ proxmox_config }}"
+      dest: /var/lib/jenkins/.tmp/proxmox.tfvars.json
+      mode: 0600
+      owner: jenkins
+      group: jenkins
+  - name: Provide root_pwd
+    become: yes
+    copy: 
+      content: "{{ root_pwd }}"
+      dest: /var/lib/jenkins/.tmp/root.pwd
+      mode: 0600
+      owner: jenkins
+      group: jenkins
+
+---
+- name: Zero Trust Self
+  hosts: all
+  tasks:
+  - name: Check if alread 0trusted
+    stat:
+      path: /etc/sudoers.d/ansible.zt
+    register: ZT
+  - name: Download 0trust sudo policy
+    when: not ZT.stat.exists
+    become: yes
+    get_url:
+      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/{{ inventory_hostname }}.zt
+      dest: /etc/sudoers.d/ansible.zt
+      mode: '0644'
+  - name: Delete all permissive sudo
+    when: not ZT.stat.exists
+    become: yes
+    file:
+      path: /etc/sudoers.d/ansible
+      state: absent
+
+- name: Install Software
+  hosts: all
+  tasks:
+  - name: Delete undeleted script
+    file:
+      path: /tmp/{{ inventory_hostname }}.install.sh
+      state: absent
+  - name: Download install script
+    get_url:
+      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/installations/{{ inventory_hostname }}.install.sh
+      dest: /tmp/{{ inventory_hostname }}.install.sh
+      mode: '0755'
+  - name: Run install script
+    shell: /tmp/{{ inventory_hostname }}.install.sh
+    failed_when: false
+    register: script_output
+  - name: Delete script
+    file:
+      path: /tmp/{{ inventory_hostname }}.install.sh
+      state: absent
+
+- name: Config Jenkins
+  hosts: cicd
+  tasks:
+  - name: Delete undeleted script
+    file:
+      path: /tmp/cicd.config.sh
+      state: absent
+  - name: Download config script
+    get_url:
+      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/configations/cicd.config.sh
+      dest: /tmp/cicd.config.sh
+      mode: 0755
+  - name: Run config script
+    shell: /tmp/cicd.config.sh
+    failed_when: false
+    register: script_output
+  - name: Delete script
+    file:
+      path: /tmp/cicd.config.sh
+      state: absent
+  - name: Delete .tmp confidential folder
+    become: yes
+    file:
+      path: /var/lib/jenkins/.tmp
+      state: absent
+  

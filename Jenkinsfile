@@ -21,7 +21,7 @@ pipeline {
          stage('Checkout') {
             steps {
                git branch: "${env.BRANCH}",
-                     url: "${env.REPOSITORY}"
+                     url: "https://github.com${env.REPOSITORY}"
             }
          }
 
@@ -86,21 +86,11 @@ pipeline {
             }
          }
 
-         stage('Run Ansible Installation') {
+         stage('Run Ansible Agent') {
             steps {
                sshagent(credentials: ['ansible-key']) {
                      dir("work") {
-                        sh "ansible-playbook installation.yml -i hosts"
-                     }
-               }
-            }
-         }
-
-         stage('Run Ansible Configuration') {
-            steps {
-               sshagent(credentials: ['ansible-key']) {
-                     dir("work") {
-                        sh "ansible-playbook configuration/*.yml -i hosts"
+                        sh "ansible-playbook installation.yml -i hosts -u ansible -e \"branch=$BRANCH repository=$REPOSITORY\""
                      }
                }
             }

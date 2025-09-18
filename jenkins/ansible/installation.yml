@@ -10,7 +10,7 @@
     when: not ZT.stat.exists
     become: yes
     get_url:
-      url: https://raw.githubusercontent.com/llouu/homeserver/{{ branch }}/sub_scripts/{{ inventory_hostname }}.zt
+      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/{{ inventory_hostname }}.zt
       dest: /etc/sudoers.d/ansible.zt
       mode: '0644'
   - name: Delete all permissive sudo
@@ -29,7 +29,7 @@
       state: absent
   - name: Download install script
     get_url:
-      url: https://raw.githubusercontent.com/llouu/homeserver/{{ branch }}/sub_scripts/installations/{{ inventory_hostname }}.install.sh
+      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/installations/{{ inventory_hostname }}.install.sh
       dest: /tmp/{{ inventory_hostname }}.install.sh
       mode: '0755'
   - name: Run install script
@@ -39,4 +39,25 @@
   - name: Delete script
     file:
       path: /tmp/{{ inventory_hostname }}.install.sh
+      state: absent
+
+- name: Config Software
+  hosts: all
+  tasks:
+  - name: Delete undeleted script
+    file:
+      path: /tmp/{{ inventory_hostname }}.config.sh
+      state: absent
+  - name: Download config script
+    get_url:
+      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/configations/{{ inventory_hostname }}.config.sh
+      dest: /tmp/{{ inventory_hostname }}.config.sh
+      mode: 0755
+  - name: Run config script
+    shell: /tmp/{{ inventory_hostname }}.config.sh
+    failed_when: false
+    register: script_output
+  - name: Delete script
+    file:
+      path: /tmp/{{ inventory_hostname }}.config.sh
       state: absent
