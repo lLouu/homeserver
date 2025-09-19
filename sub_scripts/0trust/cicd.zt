@@ -4,16 +4,17 @@ ansible ALL=(root) NOPASSWD: \
     /sbin/apk add jenkins openjdk21 openjdk21-jre packer terraform python3 py3-pip curl jq git, \
     /usr/bin/pip install ansible, \
     \
-    /usr/bin/wget -O /etc/apk/keys/jenkins-ci.org.key https://pkg.jenkins.io/*-stable/jenkins-ci.org.key, \
-    /usr/bin/wget https://get.jenkins.io/war-stable/latest/jenkins.war -O /usr/share/webapps/jenkins/jenkins.war, \
+    /usr/bin/wget -O /etc/apk/keys/jenkins-ci.org.key https\://pkg.jenkins.io/*-stable/jenkins-ci.org.key, \
+    /usr/bin/wget http\://localhost\:8080/jnlpJars/jenkins-cli.jar -O /tmp/jenkins-cli.jar, \
+    /usr/bin/wget https\://get.jenkins.io/war-stable/latest/jenkins.war -O /usr/share/webapps/jenkins/jenkins.war, \
     /bin/chmod 755 /usr/share/webapps/jenkins/jenkins.war, \
-    /bin/chown root:root /usr/share/webapps/jenkins/jenkins.war, \
+    /bin/chown root\:root /usr/share/webapps/jenkins/jenkins.war, \
     /bin/mv /usr/share/webapps/jenkins/jenkins.war /usr/share/webapps/jenkins/jenkins.war.[0-9]*-[0-9]*-[0-9]*.bck, \
     /bin/mv /usr/share/webapps/jenkins/jenkins.war /usr/share/webapps/jenkins/jenkins.war.[0-9]*-[0-9]*-[0-9]*.bck.last, \
     /bin/mv /usr/lib/python3.[0-9]*/EXTERNALLY-MANAGED /usr/lib/python3.[0-9]*/EXTERNALLY-MANAGED.old, \
     \
     /bin/umount /tmp, \
-    /bin/mount -t tmpfs -o size=[0-9]*[GMK]?,mode=1777 overflow /tmp, \
+    /bin/mount -t tmpfs -o size\=[0-9]*[GMK]?\,mode\=1777 overflow /tmp, \
     \
     /sbin/rc-service jenkins -S start, \
     /sbin/rc-service jenkins -s stop, \
@@ -22,7 +23,8 @@ ansible ALL=(root) NOPASSWD: \
     \
     /bin/cat /var/lib/jenkins/secrets/initialAdminPassword, \
     /bin/cat /var/lib/jenkins/.ssh/id_rsa, \
-    /bin/cat /var/lib/jenkins/.tmp/root.pwd, \
     /bin/cat /var/lib/jenkins/.repository, \
     /bin/cat /var/lib/jenkins/.branch, \
-    /usr/bin/base64 -w0 /var/lib/jenkins/.tmp/proxmox.tfvars.json
+    /bin/cat /var/lib/jenkins/.tmp/root.pwd, \
+    /usr/bin/base64 -w0 /var/lib/jenkins/.tmp/proxmox.tfvars.json, \
+    /bin/rm -R /var/lib/jenkins/.tmp

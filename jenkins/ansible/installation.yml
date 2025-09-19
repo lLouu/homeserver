@@ -1,17 +1,19 @@
 ---
 - name: Zero Trust Self
   hosts: all
+  become: yes
+  failed_when: false
   tasks:
   - name: Check if alread 0trusted
     stat:
-      path: /etc/sudoers.d/ansible.zt
+      path: /etc/sudoers.d/ansible_zt
     register: ZT
   - name: Download 0trust sudo policy
     when: not ZT.stat.exists
     become: yes
     get_url:
-      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/{{ inventory_hostname }}.zt
-      dest: /etc/sudoers.d/ansible.zt
+      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/0trust/{{ inventory_hostname }}_zt
+      dest: /etc/sudoers.d/ansible_zt
       mode: '0644'
   - name: Delete all permissive sudo
     when: not ZT.stat.exists
@@ -50,7 +52,7 @@
       state: absent
   - name: Download config script
     get_url:
-      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/configations/{{ inventory_hostname }}.config.sh
+      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/configurations/{{ inventory_hostname }}.config.sh
       dest: /tmp/{{ inventory_hostname }}.config.sh
       mode: 0755
   - name: Run config script

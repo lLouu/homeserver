@@ -42,7 +42,7 @@
     become: yes
     file:
       path: /var/lib/jenkins/.cache_homeserver_build
-      state: file
+      state: touch
       mode: 0744
       owner: jenkins
       group: jenkins
@@ -95,47 +95,27 @@
       owner: jenkins
       group: jenkins
 
----
 - name: Zero Trust Self
-  hosts: all
+  hosts: cicd
   tasks:
   - name: Check if alread 0trusted
+    become: yes
+    failed_when: false
     stat:
-      path: /etc/sudoers.d/ansible.zt
+      path: /etc/sudoers.d/ansible_zt
     register: ZT
   - name: Download 0trust sudo policy
     when: not ZT.stat.exists
     become: yes
     get_url:
-      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/{{ inventory_hostname }}.zt
-      dest: /etc/sudoers.d/ansible.zt
+      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/0trust/{{ inventory_hostname }}_zt
+      dest: /etc/sudoers.d/ansible_zt
       mode: '0644'
   - name: Delete all permissive sudo
     when: not ZT.stat.exists
     become: yes
     file:
       path: /etc/sudoers.d/ansible
-      state: absent
-
-- name: Install Software
-  hosts: all
-  tasks:
-  - name: Delete undeleted script
-    file:
-      path: /tmp/{{ inventory_hostname }}.install.sh
-      state: absent
-  - name: Download install script
-    get_url:
-      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/installations/{{ inventory_hostname }}.install.sh
-      dest: /tmp/{{ inventory_hostname }}.install.sh
-      mode: '0755'
-  - name: Run install script
-    shell: /tmp/{{ inventory_hostname }}.install.sh
-    failed_when: false
-    register: script_output
-  - name: Delete script
-    file:
-      path: /tmp/{{ inventory_hostname }}.install.sh
       state: absent
 
 - name: Config Jenkins
@@ -147,7 +127,7 @@
       state: absent
   - name: Download config script
     get_url:
-      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/configations/cicd.config.sh
+      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/configurations/cicd.config.sh
       dest: /tmp/cicd.config.sh
       mode: 0755
   - name: Run config script
@@ -157,10 +137,5 @@
   - name: Delete script
     file:
       path: /tmp/cicd.config.sh
-      state: absent
-  - name: Delete .tmp confidential folder
-    become: yes
-    file:
-      path: /var/lib/jenkins/.tmp
       state: absent
   

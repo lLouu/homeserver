@@ -1,6 +1,6 @@
 #!/bin/sh
 if [[ -f "/tmp/jenkins-cli.jar" ]]; then rm /tmp/jenkins-cli.jar; fi
-wget http://localhost:8080/jnlpJars/jenkins-cli.jar -O /tmp/jenkins-cli.jar
+sudo /usr/bin/wget http://localhost:8080/jnlpJars/jenkins-cli.jar -O /tmp/jenkins-cli.jar
 CLI="java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(sudo /bin/cat /var/lib/jenkins/secrets/initialAdminPassword)"
 
 ## Plugin installation
@@ -73,7 +73,7 @@ $CLI $action homeserver <<EOF
       <configVersion>2</configVersion>
       <userRemoteConfigs>
         <hudson.plugins.git.UserRemoteConfig>
-          <url>$(sudo /bin/cat /var/lib/jenkins/.repository)</url>
+          <url>https://github.com$(sudo /bin/cat /var/lib/jenkins/.repository)</url>
         </hudson.plugins.git.UserRemoteConfig>
       </userRemoteConfigs>
       <branches>
@@ -93,4 +93,7 @@ $CLI $action homeserver <<EOF
 EOF
 
 ## Run first time pipeline
-if [[ -d "/var/lib/jenkins/.tmp" ]]; then $CLI build homeserver; fi
+if [[ -d "/var/lib/jenkins/.tmp" ]]; then 
+  $CLI build homeserver
+  sudo /bin/rm -R /var/lib/jenkins/.tmp
+fi
