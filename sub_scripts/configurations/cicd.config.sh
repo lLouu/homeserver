@@ -16,17 +16,17 @@ CRUMB=$(curl -s -c cookies.jar -u admin:$(sudo /bin/cat /var/lib/jenkins/secrets
 
 ## Storing ssh private key
 curl -s -b cookies.jar -u admin:$(sudo /bin/cat /var/lib/jenkins/secrets/initialAdminPassword) -X POST "http://localhost:8080/credentials/store/system/domain/_/createCredentials" -H "$CRUMB" -H "Content-Type: application/xml" --data-binary @- <<EOF
-<com.cloudbees.plugins.credentials.impl.BasicSSHUserPrivateKey plugin="ssh-credentials@latest">
+<com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey plugin="ssh-credentials@latest">
   <scope>GLOBAL</scope>
   <id>ansible-key</id>
   <description>Ansible SSH Key</description>
   <username>ansible</username>
-  <privateKeySource class="com.cloudbees.plugins.credentials.impl.BasicSSHUserPrivateKey\$DirectEntryPrivateKeySource">
+  <directEntryPrivateKeySource>
     <privateKey>
       $(sudo /bin/cat /var/lib/jenkins/.ssh/id_rsa)
     </privateKey>
-  </privateKeySource>
-</com.cloudbees.plugins.credentials.impl.BasicSSHUserPrivateKey>
+  </directEntryPrivateKeySource>
+</com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey>
 EOF
 
 ## Storing proxmox api key

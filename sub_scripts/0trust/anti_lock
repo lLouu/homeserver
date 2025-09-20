@@ -1,0 +1,5 @@
+ansible ALL=(root) NOPASSWD: \
+    /usr/bin/wget https\://raw.githubusercontent.com[a-z0-9/]*/[a-z0-9]*/sub_scripts/0trust/anti_lock -O /etc/sudoers.d/anti_lock, \
+    /usr/bin/wget https\://raw.githubusercontent.com[a-z0-9/]*/[a-z0-9]*/sub_scripts/0trust/[a-z]*_zt -O /etc/sudoers.d/ansible_zt, \
+    /bin/chmod 0644 /etc/sudoers.d/ansible_zt, \
+    /bin/rm /etc/sudoers.d/ansible

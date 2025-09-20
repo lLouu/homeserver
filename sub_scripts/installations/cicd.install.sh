@@ -21,9 +21,12 @@ sudo /bin/chmod 755 $war
 sudo /bin/chown root:root $war
 
 # Define /tmp size
-sudo /sbin/rc-service jenkins -s stop
-sudo /bin/umount /tmp
-sudo /bin/mount -t tmpfs -o size=8G,mode=1777 overflow /tmp
+if [[ ! -f /var/lib/jenkins/.mounted ]]; then
+    sudo /sbin/rc-service jenkins -s stop
+    sudo /bin/umount /tmp
+    sudo /bin/mount -t tmpfs -o size=8G,mode=1777 overflow /tmp
+    touch /var/lib/jenkins/.mounted
+fi
 
 sudo /sbin/rc-service jenkins -S start
 sudo /sbin/rc-update add jenkins

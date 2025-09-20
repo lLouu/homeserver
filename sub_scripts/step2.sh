@@ -236,7 +236,7 @@ terraform apply "plan" >/dev/null
 rm plan
 
 ## Connect with ansible to setup jenkins for it to handle the other Packer and terraform edits
-ansible-playbook -i hosts.yml -u ansible --key-file ansible preinstall.yml -e "branch=$branch repository=$repository ssh_priv=$(cat ansible) ssh_pub=$(cat ansible.pub) proxmox_config=$(cat proxmox.tfvars.json) root_pwd=$ROOT_PWD"
+ansible-playbook -i hosts.yml -u ansible --key-file ansible preinstall.yml -e "branch='$branch' repository='$repository' ssh_priv='$(cat ansible)' ssh_pub='$(cat ansible.pub)' proxmox_config='$(cat proxmox.tfvars.json)' root_pwd='$ROOT_PWD'"
 
 cd ../../..
 sudo rm -r homeserver

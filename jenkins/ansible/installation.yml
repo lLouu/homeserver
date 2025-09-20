@@ -1,25 +1,23 @@
 ---
 - name: Zero Trust Self
   hosts: all
-  become: yes
-  failed_when: false
   tasks:
-  - name: Check if alread 0trusted
-    stat:
-      path: /etc/sudoers.d/ansible_zt
-    register: ZT
-  - name: Download 0trust sudo policy
-    when: not ZT.stat.exists
-    become: yes
-    get_url:
-      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/0trust/{{ inventory_hostname }}_zt
-      dest: /etc/sudoers.d/ansible_zt
-      mode: '0644'
-  - name: Delete all permissive sudo
-    when: not ZT.stat.exists
-    become: yes
+  - name: Delete undeleted script
     file:
-      path: /etc/sudoers.d/ansible
+      path: /tmp/0trust.sh
+      state: absent
+  - name: Download 0trust script
+    get_url:
+      url: https://raw.githubusercontent.com{{ repository }}/{{ branch }}/sub_scripts/0trust.sh
+      dest: /tmp/0trust.sh
+      mode: '0755'
+  - name: Run 0trust script
+    shell: /tmp/0trust.sh {{ repository }} {{ branch }} {{ inventory_hostname }}
+    failed_when: false
+    register: script_output
+  - name: Delete script
+    file:
+      path: /tmp/0trust.sh
       state: absent
 
 - name: Install Software
