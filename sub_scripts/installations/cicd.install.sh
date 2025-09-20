@@ -21,11 +21,11 @@ sudo /bin/chmod 755 $war
 sudo /bin/chown root:root $war
 
 # Define /tmp size
-if [[ ! -f /var/lib/jenkins/.mounted ]]; then
+if [[ ! -f /home/ansible/.mounted ]]; then
     sudo /sbin/rc-service jenkins -s stop
     sudo /bin/umount /tmp
     sudo /bin/mount -t tmpfs -o size=8G,mode=1777 overflow /tmp
-    touch /var/lib/jenkins/.mounted
+    touch /home/ansible/.mounted
 fi
 
 sudo /sbin/rc-service jenkins -S start

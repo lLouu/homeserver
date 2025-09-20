@@ -25,7 +25,8 @@
   - name: Provide branch
     become: yes
     copy:
-      content: "{{ branch }}"
+      content: |
+        {{ branch }}
       dest: /var/lib/jenkins/.branch
       mode: 0744
       owner: jenkins
@@ -33,7 +34,8 @@
   - name: Provide repository
     become: yes
     copy:
-      content: "{{ repository }}"
+      content: |
+        {{ repository }}
       dest: /var/lib/jenkins/.repository
       mode: 0744
       owner: jenkins
@@ -57,7 +59,8 @@
   - name: Provide id_rsa
     become: yes
     copy: 
-      content: "{{ ssh_priv }}"
+      content: |
+        {{ ssh_priv }}
       dest: /var/lib/jenkins/.ssh/id_rsa
       mode: 0600
       owner: jenkins
@@ -65,7 +68,8 @@
   - name: Provide id_rsa.pub
     become: yes
     copy: 
-      content: "{{ ssh_pub }}"
+      content: |
+        {{ ssh_pub }}
       dest: /var/lib/jenkins/.ssh/id_rsa.pub
       mode: 0600
       owner: jenkins
@@ -81,7 +85,8 @@
   - name: Provide proxmox.tfvars.json
     become: yes
     copy: 
-      content: "{{ proxmox_config }}"
+      content: |
+        {{ proxmox_config }}
       dest: /var/lib/jenkins/.tmp/proxmox.tfvars.json
       mode: 0600
       owner: jenkins
@@ -89,7 +94,8 @@
   - name: Provide root_pwd
     become: yes
     copy: 
-      content: "{{ root_pwd }}"
+      content: |
+        {{ root_pwd }}
       dest: /var/lib/jenkins/.tmp/root.pwd
       mode: 0600
       owner: jenkins

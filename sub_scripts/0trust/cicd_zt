@@ -27,4 +27,5 @@ ansible ALL=(root) NOPASSWD: \
     /bin/cat /var/lib/jenkins/.branch, \
     /bin/cat /var/lib/jenkins/.tmp/root.pwd, \
     /usr/bin/base64 -w0 /var/lib/jenkins/.tmp/proxmox.tfvars.json, \
-    /bin/rm -R /var/lib/jenkins/.tmp
+    /bin/rm -R /var/lib/jenkins/.tmp, \
+    /bin/rm /tmp/jenkins-cli.jar

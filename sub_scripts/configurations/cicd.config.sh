@@ -1,5 +1,5 @@
 #!/bin/sh
-if [[ -f "/tmp/jenkins-cli.jar" ]]; then rm /tmp/jenkins-cli.jar; fi
+if [[ -f "/tmp/jenkins-cli.jar" ]]; then sudo /bin/rm /tmp/jenkins-cli.jar; fi
 sudo /usr/bin/wget http://localhost:8080/jnlpJars/jenkins-cli.jar -O /tmp/jenkins-cli.jar
 CLI="java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(sudo /bin/cat /var/lib/jenkins/secrets/initialAdminPassword)"
 

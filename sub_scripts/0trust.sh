@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 repository=$1
 branch=$2
 inventory_hostname=$3
