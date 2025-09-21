@@ -24,13 +24,18 @@ printf "Defaults\ttimestamp_timeout=-1\n" | sudo tee /etc/sudoers.d/tmp > /dev/n
 branch="main"
 start=$(date +%s)
 nologs=""
-repository="/llouu/homeserver" # TODO : make it an option
+repository="/llouu/homeserver"
 
 POSITIONAL_ARGS=()
 ORIGINAL_ARGS=$@
 
 while [[ $# -gt 0 ]]; do
   case $1 in
+    -r|--repository)
+      repository="$(echo $2 | sed 's/^\(https\?:\/\/\)\?\(github\.com\)\?\/\?/\//')" | sed 's/\.git$//' # change all form of https://github.com/ with /, or add / if not here, adn remove ending .git some may use
+      shift # past argument
+      shift # past value
+      ;;
     -b|--branch)
       branch="$2"
       shift # past argument
@@ -59,7 +64,6 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 #######
 ## Clean previous step auto-relaunch
 export TERM=xterm
-echo 'export TERM=xterm' >> ~/.profile
 sudo rm /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf
 sed -i 's/~\/step2.sh//' ~/.bash_profile
 
@@ -141,19 +145,21 @@ echo "[~] Setting up proxmox API"
 echo "user:terraform@pve:1:0:::::::" | sudo tee -a /etc/pve/user.cfg > /dev/null
 echo "token:terraform@pve!$TOKEN_ID:0:0:extended terraform token:" | sudo tee -a /etc/pve/user.cfg > /dev/null
 
-### Groups
-echo "group:TerraformProviders:terraform@pve:Terraform Providers:" | sudo tee -a /etc/pve/user.cfg > /dev/null
-### Roles
-echo "role:terraformDataProvider:Datastore.AllocateSpace,Datastore.AllocateTemplate,Datastore.Audit:" | sudo tee -a /etc/pve/user.cfg > /dev/null
-echo "role:terraformVMProvider:Pool.Allocate,VM.Allocate,VM.Audit,VM.Clone,VM.Config.CDROM,VM.Config.Cloudinit,VM.Config.CPU,VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,VM.Migrate,VM.Monitor,VM.PowerMgmt,SDN.Use:" | sudo tee -a /etc/pve/user.cfg > /dev/null
-echo "role:terraformSysProvider:Sys.Audit,Sys.Console,Sys.Modify:" | sudo tee -a /etc/pve/user.cfg > /dev/null
+lines=(
+  "group:TerraformProviders:terraform@pve:Terraform Providers:"
+  "role:terraformDataProvider:Datastore.AllocateSpace,Datastore.AllocateTemplate,Datastore.Audit:"
+  "role:terraformVMProvider:Pool.Allocate,VM.Allocate,VM.Audit,VM.Clone,VM.Config.CDROM,VM.Config.Cloudinit,VM.Config.CPU,VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,VM.Migrate,VM.Monitor,VM.PowerMgmt,SDN.Use:"
+  "role:terraformSysProvider:Sys.Audit,Sys.Console,Sys.Modify:"
+  "acl:1:/:@TerraformProviders:terraformDataProvider"
+  "acl:1:/:@TerraformProviders:terraformVMProvider"
+  "acl:1:/:@TerraformProviders:terraformSysProvider"
+)
 
-### /storage acl
-echo "acl:1:/:@TerraformProviders:terraformDataProvider" | sudo tee -a /etc/pve/user.cfg > /dev/null
-### /vms acl
-echo "acl:1:/:@TerraformProviders:terraformVMProvider" | sudo tee -a /etc/pve/user.cfg > /dev/null
-### /sys acl
-echo "acl:1:/:@TerraformProviders:terraformSysProvider" | sudo tee -a /etc/pve/user.cfg > /dev/null
+for line in "${lines[@]}"; do
+   if ! grep -qxF "$line" "$file"; then
+      echo "$line" | sudo tee -a /etc/pve/user.cfg > /dev/null
+   fi
+done
 
 ### store secrets
 echo "terraform:$HASHED_PASS:" | sudo tee -a /etc/pve/priv/shadow.cfg > /dev/null
@@ -183,33 +189,6 @@ if [[ ! -f "/var/lib/vz/template/iso/alpine-virt-3.21.2-aarch64.iso" || "$(sha25
    else
       sudo mv alpine-virt-3.21.2-aarch64.iso /var/lib/vz/template/iso/alpine-virt-3.21.2-aarch64.iso
       echo "[+] Alpine ISO added to ISO local library"
-   fi
-fi
-
-## Debian
-if [[ ! -f "/var/lib/vz/template/iso/debian-12.9.0-amd64-netinst.iso" || "$(sha512sum /var/lib/vz/template/iso/debian-12.9.0-amd64-netinst.iso | awk '{print($1)}')" != "9ebe405c3404a005ce926e483bc6c6841b405c4d85e0c8a7b1707a7fe4957c617ae44bd807a57ec3e5c2d3e99f2101dfb26ef36b3720896906bdc3aaeec4cd80" ]]; then
-   echo "[~] Downloading Debian ISO"
-   wget https://cdimage.debian.org/cdimage/archive/12.9.0/amd64/iso-cd/debian-12.9.0-amd64-netinst.iso -q > /dev/null
-   if [[ "$(sha512sum debian-12.9.0-amd64-netinst.iso | awk '{print($1)}')" != "9ebe405c3404a005ce926e483bc6c6841b405c4d85e0c8a7b1707a7fe4957c617ae44bd807a57ec3e5c2d3e99f2101dfb26ef36b3720896906bdc3aaeec4cd80" ]]; then
-      echo "[!] Could not download Debian ISO"
-      rm debian-12.9.0-amd64-netinst.iso
-   else
-      sudo mv debian-12.9.0-amd64-netinst.iso /var/lib/vz/template/iso/debian-12.9.0-amd64-netinst.iso
-      echo "[+] Debian ISO added to ISO local library"
-   fi
-fi
-
-## Ubuntu
-if [[ ! -f "/var/lib/vz/template/iso/ubuntu-24.04.1-live-server-amd64.iso" || "$(sha256sum /var/lib/vz/template/iso/ubuntu-24.04.1-live-server-amd64.iso | awk '{print($1)}')" != "e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9" ]]; then
-   echo "[~] Downloading Ubuntu Server ISO"
-   wget https://old-releases.ubuntu.com/releases/noble/ubuntu-24.04.1-live-server-amd64.iso -q > /dev/null
-   sleep 3
-   if [[ "$(sha256sum ubuntu-24.04.1-live-server-amd64.iso | awk '{print($1)}')" != "e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9" ]]; then
-      echo "[!] Could not download Ubuntu Server ISO"
-      rm ubuntu-24.04.1-live-server-amd64.iso
-   else
-      sudo mv ubuntu-24.04.1-live-server-amd64.iso /var/lib/vz/template/iso/ubuntu-24.04.1-live-server-amd64.iso
-      echo "[+] Ubuntu Server ISO added to ISO local library"
    fi
 fi
 
@@ -292,6 +271,26 @@ terraform init >/dev/null
 terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json --var-file=init.tfvars.json -out plan >/dev/null
 terraform apply "plan" >/dev/null
 rm plan
+
+## Create remote ansible user
+sudo apt-get install ssh -yq >/dev/null
+sudo adduser ansible --disabled-password --gecos "" --quiet >/dev/null 2>/dev/null
+sudo sed -i 's/ansible:!/ansible:*/' /etc/shadow
+sudo mkdir -p /home/ansible/.ssh
+sudo cp ansible.pub /home/ansible/.ssh/authorized_keys
+sudo chmod 700 /home/ansible/.ssh && sudo chmod 600 /home/ansible/.ssh/authorized_keys
+sudo chown ansible:ansible /home/ansible/.ssh /home/ansible/.ssh/authorized_keys
+cat > first_setup.conf <<EOF
+Port 22
+Protocol 2
+PermitRootLogin no
+PasswordAuthentication no
+PubkeyAuthentication yes
+ChallengeResponseAuthentication no
+EOF
+sudo mv first_setup.conf /etc/ssh/sshd_config.d/
+sudo service sshd restart
+echo 'ansible ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/ansible >/dev/null
 
 ## Connect with ansible to setup jenkins for it to handle the other Packer and terraform edits
 ansible-playbook -i hosts.yml -u ansible --key-file ansible preinstall.yml -e "branch='$branch' repository='$repository' ssh_priv='$(cat ansible)' ssh_pub='$(cat ansible.pub)' proxmox_config='$(cat proxmox.tfvars.json)' root_pwd='$ROOT_PWD'"

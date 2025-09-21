@@ -11,7 +11,7 @@ banner (){
         echo '/_/ /_/  \____//_/ /_/ /_/\___//____/ \___//_/    _____/ \___//_/     ';
         echo ""
         echo "Author : lLou_"
-        echo "Script version : V0.8"
+        echo "Script version : V0.9"
         echo ""
         echo ""
 }
@@ -41,12 +41,18 @@ trap stop INT
 branch="main"
 check="1"
 nologs=""
+repository="/llouu/homeserver"
 
 POSITIONAL_ARGS=()
 ORIGINAL_ARGS=$@
 
 while [[ $# -gt 0 ]]; do
   case $1 in
+    -r|--repository)
+      repository="$(echo $2 | sed 's/^\(https\?:\/\/\)\?\(github\.com\)\?\/\?/\//')" | sed 's/\.git$//' # change all form of https://github.com/ with /, or add / if not here, adn remove ending .git some may use
+      shift # past argument
+      shift # past value
+      ;;
     -b|--branch)
       branch="$2"
       shift # past argument
@@ -62,6 +68,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     -h|--help)
       echo "[~] Github options"
+      echo "[*] -r | --repository <repo> (default: /llouu/homeserver) - Use this repository for reference (eg. use of a fork)"
       echo "[*] -b | --branch <main|dev> (default: main) - Use this branch version of the github"
       echo "[*] -nc | --no-check - Disable the check of the branch on github"
       echo ""
@@ -147,80 +154,101 @@ done
 ## /mnt/vram is used for vram, /mnt/storage is under RAID, /mnt/temp is not, hot is for caching (SSD), cold for archivage (HDD)
 echo "[~] Configuring mergerfs"
 sudo mkdir -p /mnt/vram /mnt/hot /mnt/cold /mnt/temp_hot /mnt/temp_cold /mnt/storage /mnt/temp
-echo "/mnt/.vram* /mnt/vram fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/.hot* /mnt/hot fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/.cold* /mnt/cold fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/hot:/mnt/cold /mnt/storage fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/.temp_cold*:/mnt/.tcold* /mnt/temp_cold fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/.temp_hot*:/mnt/.thot* /mnt/temp_hot fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-echo "/mnt/temp_hot:/mnt/temp_cold /mnt/temp fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0" | sudo tee -a /etc/fstab > /dev/null
-# mount
-sudo mount -a 2>/dev/null
-# configure swap
+options="fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0"
+declare -A mounts=(
+  ["/mnt/vram"]="/mnt/.vram*"
+  ["/mnt/hot"]="/mnt/.hot*"
+  ["/mnt/cold"]="/mnt/.cold*"
+  ["/mnt/storage"]="/mnt/hot:/mnt/cold"
+  ["/mnt/temp_cold"]="/mnt/.temp_cold*:/mnt/.tcold*"
+  ["/mnt/temp_hot"]="/mnt/.temp_hot*:/mnt/.thot*"
+  ["/mnt/temp"]="/mnt/temp_hot:/mnt/temp_cold"
+)
+
+for target in "${!mounts[@]}"; do
+   src="${mounts[$target]}"
+   newline="$src $target $options"
+   if grep -qE "^[^#].*\s+$target\s+" /etc/fstab; then
+      sudo sed -i "s|^[^#].*\s\+$target\s\+.*|$newline|" /etc/fstab
+   else
+      echo "$newline" | sudo tee -a /etc/fstab > /dev/null
+   fi
+done
+# Swap configuration
 echo "[~] Configuring swap"
 for vram_drive in $(ls -a /mnt | grep .vram);do
-    size=$(df -h /mnt/$vram_drive | tail -n1 | awk '{print($4)}')
-    swapfile="/mnt/$vram_drive/$vram_drive.swap"
-    sudo fallocate -l $size $swapfile 2>/dev/null
-    sudo chmod 600 $swapfile 2>/dev/null
-    sudo mkswap $swapfile >/dev/null 2>/dev/null
-    sudo swapon $swapfile 2>/dev/null
-    echo "$swapfile none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+   size=$(df -h /mnt/$vram_drive | tail -n1 | awk '{print($4)}')
+   swapfile="/mnt/$vram_drive/$vram_drive.swap"
+   sudo fallocate -l $size $swapfile 2>/dev/null
+   sudo chmod 600 $swapfile 2>/dev/null
+   sudo mkswap $swapfile >/dev/null 2>/dev/null
+   sudo swapon $swapfile 2>/dev/null
+   if ! grep -qE "$swapfile none swap sw 0 0" /etc/fstab; then
+      echo "$swapfile none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+   fi
 done
+
+sudo mount -a 2>/dev/null
+
+
 # hot-cold storage management
 wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/storage_manager.sh -q >/dev/null
 chmod +x storage_manager.sh
 sudo mkdir -p /opt/homeserver
 sudo mv storage_manager.sh /opt/homeserver/storage_manager
-(crontab -l 2>/dev/null; echo "0 0 */3 * * /opt/homeserver/storage_manager") | crontab -
+(crontab -l 2>/dev/null | grep -v "/opt/homeserver/storage_manager" ; echo "0 0 */3 * * /opt/homeserver/storage_manager") | crontab -
 
 echo "[+] Mounting done"
 
 # Unlock vGPU
-echo "[~] Starting vGPU unlock"
-echo "[~] Downloading dependencies"
-sudo apt-get install python3 python3-pip dkms git jq mdevctl megatools -yq > /dev/null
-for py in $(ls /usr/lib/ | grep python3.);do
-    if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
-        sudo mv /usr/lib/$py/EXTERNALLY-MANAGED /usr/lib/$py/EXTERNALLY-MANAGED.old
+if [[ ! -f /home/ansible/.vgpu_unlocked ]]; then
+    echo "[~] Starting vGPU unlock"
+    echo "[~] Downloading dependencies"
+    sudo apt-get install python3 python3-pip dkms git jq mdevctl megatools -yq > /dev/null
+    for py in $(ls /usr/lib/ | grep python3.);do
+        if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
+            sudo mv /usr/lib/$py/EXTERNALLY-MANAGED /usr/lib/$py/EXTERNALLY-MANAGED.old
+        fi
+    done
+    pip3 install frida -q >/dev/null 2>/dev/null
+
+    echo "[~] Fetching script"
+    git clone https://github.com/DualCoder/vgpu_unlock --quiet >/dev/null 2>/dev/null
+    chmod -R +x vgpu_unlock
+    sudo mv vgpu_unlock /lib/
+
+    echo "[~] Setting up iommu"
+    vendor_id=$(cat /proc/cpuinfo | grep vendor_id | awk 'NR==1{print $3}')
+    if [[ "$vendor_id" = "AuthenticAMD" ]];then
+    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet amd_iommu=on iommu=pt"/' /etc/default/grub
+    else
+    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt"/' /etc/default/grub
     fi
-done
-pip3 install frida -q >/dev/null 2>/dev/null
+    sudo update-grub >/dev/null 2>/dev/null
 
-echo "[~] Fetching script"
-git clone https://github.com/DualCoder/vgpu_unlock --quiet >/dev/null 2>/dev/null
-chmod -R +x vgpu_unlock
-sudo mv vgpu_unlock /lib/
+    echo -e "\nvfio\nvfio_iommu_typel\nvfio_pci\nvfio_virqfd\n" | sudo tee -a /etc/modules >/dev/null
+    echo "options vfio_iommu_typel allow_unsafe_interrupts=1" | sudo tee /etc/modprobe.d/iommu_unsafe_interrupts.conf >/dev/null
+    echo "options kvm ignore_msrs=1" | sudo tee /etc/modprobe.d/kvm_msrs.conf >/dev/null
+    echo "blacklist nouveau" | sudo tee -a /etc/modprobe.d/blacklist.conf >/dev/null
+    sudo update-initramfs -u >/dev/null 2>/dev/null
 
-echo "[~] Setting up iommu"
-vendor_id=$(cat /proc/cpuinfo | grep vendor_id | awk 'NR==1{print $3}')
-if [[ "$vendor_id" = "AuthenticAMD" ]];then
-sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet amd_iommu=on iommu=pt"/' /etc/default/grub
-else
-sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt"/' /etc/default/grub
+    echo "[~] Fetching Drivers"
+    # https://github.com/wvthoog/proxmox-vgpu-installer/blob/main/proxmox-installer.sh
+    version="550.54.10"
+    megadl https://mega.nz/file/JjtyXRiC#cTIIvOIxu8vf-RdhaJMGZAwSgYmqcVEKNNnRRJTwDFI >/dev/null 2>/dev/null
+    chmod +x NVIDIA-Linux-x86_64-$version-vgpu-kvm.run
+    sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm.run --dkms -m=kernel -s >/dev/null 2>/dev/null
+    sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpud.service
+    sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpu-mgr.service
+    sudo systemctl daemon-reload
+    sudo sed -i 's/cpuset.h>/cpuset.h>\n#include "\/lib\/vgpu_unlock\/vgpu_unlock_hooks.c"/' /usr/src/nvidia-$version/nvidia/os-interface.c
+    echo "ldflags-y += -T /lib/vgpu_unlock/kern.ld" | sudo tee -a /usr/src/nvidia-$version/nvidia/nvidia.Kbuild >/dev/null
+    echo "[~] Building driver"
+    dkms remove -m nvidia -v $version --all >/dev/null 2>/dev/null
+    dkms install -m nvidia -v $version >/dev/null 2>/dev/null
+
+    touch /home/ansible/.vgpu_unlocked
 fi
-sudo update-grub >/dev/null 2>/dev/null
-
-echo -e "\nvfio\nvfio_iommu_typel\nvfio_pci\nvfio_virqfd\n" | sudo tee -a /etc/modules >/dev/null
-echo "options vfio_iommu_typel allow_unsafe_interrupts=1" | sudo tee /etc/modprobe.d/iommu_unsafe_interrupts.conf >/dev/null
-echo "options kvm ignore_msrs=1" | sudo tee /etc/modprobe.d/kvm_msrs.conf >/dev/null
-echo "blacklist nouveau" | sudo tee -a /etc/modprobe.d/blacklist.conf >/dev/null
-sudo update-initramfs -u >/dev/null 2>/dev/null
-
-echo "[~] Fetching Drivers"
-# https://github.com/wvthoog/proxmox-vgpu-installer/blob/main/proxmox-installer.sh
-version="550.54.10"
-megadl https://mega.nz/file/JjtyXRiC#cTIIvOIxu8vf-RdhaJMGZAwSgYmqcVEKNNnRRJTwDFI >/dev/null 2>/dev/null
-chmod +x NVIDIA-Linux-x86_64-$version-vgpu-kvm.run
-sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm.run --dkms -m=kernel -s >/dev/null 2>/dev/null
-sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpud.service
-sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpu-mgr.service
-sudo systemctl daemon-reload
-sudo sed -i 's/cpuset.h>/cpuset.h>\n#include "\/lib\/vgpu_unlock\/vgpu_unlock_hooks.c"/' /usr/src/nvidia-$version/nvidia/os-interface.c
-echo "ldflags-y += -T /lib/vgpu_unlock/kern.ld" | sudo tee -a /usr/src/nvidia-$version/nvidia/nvidia.Kbuild >/dev/null
-echo "[~] Building driver"
-dkms remove -m nvidia -v $version --all >/dev/null 2>/dev/null
-dkms install -m nvidia -v $version >/dev/null 2>/dev/null
 
 # Proxmox installation
 ## Hostname management
@@ -241,13 +269,14 @@ fi
 ## Add proxmox VE repo
 echo "[~] Adding proxmox VE repo"
 if [[ ! -f '/etc/apt/sources.list.d/pve-install-repo.list' || ! "$(cat /etc/apt/sources.list.d/pve-install-repo.list | grep 'deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription')" ]]; then
-    echo "deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription" | sudo tee /etc/apt/sources.list.d/pve-install-repo.list > /dev/null
+   echo "deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription" | sudo tee /etc/apt/sources.list.d/pve-install-repo.list > /dev/null
 fi
-wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -q -O ~/proxmox-release-bookworm.gpg >/dev/null -q >/dev/null
-if [[ "$(sha512sum ~/proxmox-release-bookworm.gpg | awk '{print($1)}')" != "7da6fe34168adc6e479327ba517796d4702fa2f8b4f0a9833f5ea6e6b48f6507a6da403a274fe201595edc86a84463d50383d07f64bdde2e3658108db7d6dc87" ]]; then
-    echo "[-] Failed to fetch gpg key for proxmox repo"
-    rm ~/proxmox-release-bookworm.gpg >/dev/null 2>/dev/null
-    exit 1
+if [[ ! -f /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg || "$(sha512sum /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg | awk '{print($1)}')" != "7da6fe34168adc6e479327ba517796d4702fa2f8b4f0a9833f5ea6e6b48f6507a6da403a274fe201595edc86a84463d50383d07f64bdde2e3658108db7d6dc87" ]]; then
+   sudo wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -q -O /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg >/dev/null -q >/dev/null
+   if [[ "$(sha512sum /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg | awk '{print($1)}')" != "7da6fe34168adc6e479327ba517796d4702fa2f8b4f0a9833f5ea6e6b48f6507a6da403a274fe201595edc86a84463d50383d07f64bdde2e3658108db7d6dc87" ]]; then
+      sudo rm /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg >/dev/null 2>/dev/null
+      exit 1
+   fi
 fi
 sudo mv ~/proxmox-release-bookworm.gpg /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
 sudo apt-get update -yq > /dev/null
@@ -273,9 +302,11 @@ wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/step
 chmod +x step2.sh
 sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
 echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin $(whoami) --noclear %I \\\$TERM" | sudo tee /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf >/dev/null
-options="--start $start --branch $branch"
+options="--start $start --branch $branch --repository $repository"
 if [[ $nologs ]];then options="$options -nl";fi
-echo "$artifacts/step2.sh $options" > ~/.bash_profile
+echo "$artifacts/step2.sh $options" >> ~/.bash_profile
+if [[ ! grep -qE "export TERM=xterm" ~/.bash_profile ]]; then echo 'export TERM=xterm' >> ~/.bash_profile; fi
+if [[ ! grep -qE "export TERM=xterm" ~/.profile ]]; then echo 'export TERM=xterm' >> ~/.profile; fi
 
 
 ## Reboot
