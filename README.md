@@ -6,11 +6,11 @@ Homeserver is an automation script to convert a machine in a self-hosted proxmox
 ## Preparation
 On your server, install debian, preferablly without gui. Do the partitionning depending on your drives. Here is some guidelines for it :
 - Use a 20G partition for the OS
-- Consider using most of your NVMe as swap, if so you don't need to RAID it
-- Use NVMe or SSD for a "tmp" partition, still without RAID, that would be used for SSD caching, or for filesystems that do not need backup since it can juste be installed back again
-- remaining SSD and NVME can be used with RAID 3 or RAID 5, using HDD as parity if possible. Use that as hot storage.
-- For HDD, use them as cold storage with RAID 1, 3 or 5.
-- You may also use part of HDD for temp storage with no RAID if you don't care about a slow system, and prefer using SSD for increasing swap capacities.
+- NVMe should be used for the swap, and if SSD caching before real SSDs. It may also be used as hot storage, with SSD or HDD as cold storage behind
+- SSD should be mostly used for hot storage. Swap may be also be considered if you have no NVMe
+- HDD should be used for parity, and cold storage
+> We advise pairing HDDs with SSDs, and as such using part of HDD for the snapraid parity. For xTb of SSD and yTb of HDD, make a HDD partition of (x+y)/2. For 4Tb SSD and 16Tb HDD, that makes (4+16)/2 Tb = 10 Tb HDD partition, leaving 6 Tb for cold storage. This allows redundancy of SSD using cheaper and more durable HDD storage
+> Obviously, this configuration is usefull starting 2 pairs of HDD-SSD only
 
 ## Installation
 
@@ -30,19 +30,11 @@ chmod +x install.sh
 ```
 
 # Features
+## Drives management
+> Schematics will be added in near future for explaination
+
 ## Proxmox installation
 Automation of proxmox VE installation from a debian.
-
-## Data management
-You'll need to make your partitionning and RAID management before the script is launched. However, the script manage mounting, and use mergerfs to facilitte multi-drives management. You can categorise your partition as followed :
-- `vram` will be fully used for swap files, mounted in `/mnt/vram`, thought for NVMe without RAID
-- `hot` will be hot storage, mounted in `/mnt/hot`, thought to be SSD with RAID
-- `cold` will be cold storage, mounted in `/mnt/cold`, thought to be HDD with RAID
-- `temp_hot` (or `thot`) will be hot temp storage, mounted in `/mnt/temp_hot`, thought to be SSD without RAID
-- `temp_cold` (or `tcold`) will be cold temp storage, mounted in `/mnt/temp_cold`, thought to be HDD without RAID
-
-Every 3 days, a check of last used is done to move files between hot and cold storages.<br>
-Also, hot and cold are merged in `/mnt/storage`, while temp_hot and temp_cold are merged in `/mnt/temp`
 
 ## vGPU unlock
 > Shoutout to https://github.com/DualCoder/vgpu_unlock
@@ -61,6 +53,6 @@ Before Jenkins gets deployed, the host proxmox node takes the role of the CICD a
 
 ## ISO library
 - alpine-virt-3.21.2-aarch64.iso
-- debian-12.9.0-amd64-netinst.iso
+- debian-13.2.0-amd64-netinst.iso
 - ubuntu-24.04.1-live-server-amd64.iso
 - pfSense-CE-2.7.2-RELEASE-amd64.iso

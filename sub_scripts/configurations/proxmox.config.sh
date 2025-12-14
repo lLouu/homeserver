@@ -97,14 +97,14 @@ if [[ ! -f "/var/lib/vz/template/iso/alpine-virt-3.21.2-aarch64.iso" || "$(sha25
 fi
 
 ## Debian
-if [[ ! -f "/var/lib/vz/template/iso/debian-12.9.0-amd64-netinst.iso" || "$(sha512sum /var/lib/vz/template/iso/debian-12.9.0-amd64-netinst.iso | awk '{print($1)}')" != "9ebe405c3404a005ce926e483bc6c6841b405c4d85e0c8a7b1707a7fe4957c617ae44bd807a57ec3e5c2d3e99f2101dfb26ef36b3720896906bdc3aaeec4cd80" ]]; then
+if [[ ! -f "/var/lib/vz/template/iso/debian-13.2.0-amd64-netinst.iso" || "$(sha512sum /var/lib/vz/template/iso/debian-13.2.0-amd64-netinst.iso | awk '{print($1)}')" != "891d7936a2e21df1d752e5d4c877bb7ca2759c902b0bfbf5527098464623bedaa17260e8bd4acf1331580ae56a6a87a08cc2f497102daa991d5e4e4018fee82b" ]]; then
    echo "[~] Downloading Debian ISO"
-   wget https://cdimage.debian.org/cdimage/archive/12.9.0/amd64/iso-cd/debian-12.9.0-amd64-netinst.iso -q > /dev/null
-   if [[ "$(sha512sum debian-12.9.0-amd64-netinst.iso | awk '{print($1)}')" != "9ebe405c3404a005ce926e483bc6c6841b405c4d85e0c8a7b1707a7fe4957c617ae44bd807a57ec3e5c2d3e99f2101dfb26ef36b3720896906bdc3aaeec4cd80" ]]; then
+   wget https://cdimage.debian.org/cdimage/archive/13.2.0/amd64/iso-cd/debian-13.2.0-amd64-netinst.iso -q > /dev/null
+   if [[ "$(sha512sum debian-13.2.0-amd64-netinst.iso | awk '{print($1)}')" != "891d7936a2e21df1d752e5d4c877bb7ca2759c902b0bfbf5527098464623bedaa17260e8bd4acf1331580ae56a6a87a08cc2f497102daa991d5e4e4018fee82b" ]]; then
       echo "[!] Could not download Debian ISO"
-      rm debian-12.9.0-amd64-netinst.iso
+      rm debian-13.2.0-amd64-netinst.iso
    else
-      sudo mv debian-12.9.0-amd64-netinst.iso /var/lib/vz/template/iso/debian-12.9.0-amd64-netinst.iso
+      sudo mv debian-13.2.0-amd64-netinst.iso /var/lib/vz/template/iso/debian-13.2.0-amd64-netinst.iso
       echo "[+] Debian ISO added to ISO local library"
    fi
 fi

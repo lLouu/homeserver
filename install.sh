@@ -11,7 +11,7 @@ banner (){
         echo '/_/ /_/  \____//_/ /_/ /_/\___//____/ \___//_/    _____/ \___//_/     ';
         echo ""
         echo "Author : lLou_"
-        echo "Script version : V0.9"
+        echo "Script version : V0.10"
         echo ""
         echo ""
 }
@@ -94,7 +94,9 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 if [[ $check ]];then
     wget https://raw.githubusercontent.com/llouu/homeserver/$branch/install.sh -q >/dev/null
     chmod +x install.sh
-    ./install.sh --branch $branch -nc
+    options="--repository $repository --branch $branch -nc"
+    if [[ $nologs ]]; then options="$options -nl"; fi
+    ./install.sh $options
     exit
 fi
 
@@ -105,93 +107,183 @@ banner
 
 ###############
 
+# Add special repositories
+## Proxmox repo
+if [[ ! -f '/etc/apt/sources.list.d/pve-install-repo.list' || ! "$(cat /etc/apt/sources.list.d/pve-install-repo.list | grep 'deb [arch=amd64] http://download.proxmox.com/debian/pve trixie pve-no-subscription')" ]]; then
+   echo "deb [arch=amd64] http://download.proxmox.com/debian/pve trixie pve-no-subscription" | sudo tee /etc/apt/sources.list.d/pve-install-repo.list > /dev/null
+fi
+if [[ ! -f /etc/apt/trusted.gpg.d/proxmox-release-trixie.gpg || "$(sha512sum /etc/apt/trusted.gpg.d/proxmox-release-trixie.gpg | awk '{print($1)}')" != "8678f2327c49276615288d7ca11e7d296bc8a2b96946fe565a9c81e533f9b15a5dbbad210a0ad5cd46d361ff1d3c4bac55844bc296beefa4f88b86e44e69fa51" ]]; then
+   sudo wget https://enterprise.proxmox.com/debian/proxmox-release-trixie.gpg -q -O /etc/apt/trusted.gpg.d/proxmox-release-trixie.gpg >/dev/null -q >/dev/null
+   if [[ "$(sha512sum /etc/apt/trusted.gpg.d/proxmox-release-trixie.gpg | awk '{print($1)}')" != "8678f2327c49276615288d7ca11e7d296bc8a2b96946fe565a9c81e533f9b15a5dbbad210a0ad5cd46d361ff1d3c4bac55844bc296beefa4f88b86e44e69fa51" ]]; then
+      sudo rm /etc/apt/trusted.gpg.d/proxmox-release-trixie.gpg >/dev/null 2>/dev/null
+      exit 1
+   fi
+fi
+## bcache fs repo
+if [[ ! -f /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc || "$(sha512sum /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc | awk '{print($1)}')" != "97ae039fed3b22b65840c91e94aef20f0cac3698ef9e9aa4fce7417b2ace94618a87325ad628bd64dfbefc38d5412d1195b0fbb93875df3084b0637ac87a8345" ]]; then
+   sudo wget https://apt.bcachefs.org/apt.bcachefs.org.asc -q -O /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc >/dev/null -q >/dev/null
+   if [[ "$(sha512sum /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc | awk '{print($1)}')" != "97ae039fed3b22b65840c91e94aef20f0cac3698ef9e9aa4fce7417b2ace94618a87325ad628bd64dfbefc38d5412d1195b0fbb93875df3084b0637ac87a8345" ]]; then
+      sudo rm /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc >/dev/null 2>/dev/null
+      exit 1
+   fi
+fi
+
 # Update system
 echo "[~] Updating system"
 sudo apt-get update > /dev/null
 echo "[~] Updating done, upgrading system"
 sudo apt-get upgrade -yq > /dev/null
+sudo apt-get full-upgrade -yq > /dev/null
 sudo apt-get autoremove -yq > /dev/null
 echo "[+] Updating and upgrading done"
 echo ""
 
 # Manage data 
 echo "[~] Mounting drives"
-sudo apt-get install mergerfs -yq > /dev/null
+sudo apt-get install pve-headers bcachefs-tools bcachefs-kernel-dkms snapraid mergerfs -yq > /dev/null
 
 # Mount disks
 echo "[*] Please ensure to have done your partitionning before the script execution. CTRL+C if that has not be done yet"
 echo "[#] Here are all partitions :"
 lsblk -o NAME,SIZE
+# Swap
 inputed_part="1"
-id="1"
+swapDrives=""
 while [[ "$inputed_part" ]];do
     part=""
     while [[ $inputed_part && ! $part ]];do
-        echo "[*] Select partition :"
+        echo "[*] Select swap partition (empty to stop) :"
         read -p "[>] " inputed_part
         part="$(ls /dev | grep ^$inputed_part$)"
         if [[ $inputed_part && ! $part ]];then
             echo "[!] Invalid partition"
         fi
     done
-    if [[ $inputed_part ]];then
-        type=""
-        while [[ ! $type ]];do
-            echo "[*] Type (vram, hot, cold, temp_hot, temp_cold):"
-            read -p "[>] " inputed_type
-            type=$(echo -e "vram\nhot\ncold\ntemp_hot\ntemp_cold\nthot\ntcold" | grep ^$inputed_type)
-            if [[ ! $type || $(echo $type) != $(echo "$type") ]];then
-                echo "[!] Invalid type"
-            fi
-        done
-
-        sudo mkdir -p /mnt/.$type$id
-        echo "/dev/$part /mnt/.$type$id ext4 defaults 0 2" | sudo tee -a /etc/fstab > /dev/null
-        id=$((id+1))
-    fi
+    swapDrives="$part $swapDrives"
 done
-# configure mergerfs
-## /mnt/vram is used for vram, /mnt/storage is under RAID, /mnt/temp is not, hot is for caching (SSD), cold for archivage (HDD)
-echo "[~] Configuring mergerfs"
-sudo mkdir -p /mnt/vram /mnt/hot /mnt/cold /mnt/temp_hot /mnt/temp_cold /mnt/storage /mnt/temp
-options="fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0"
-declare -A mounts=(
-  ["/mnt/vram"]="/mnt/.vram*"
-  ["/mnt/hot"]="/mnt/.hot*"
-  ["/mnt/cold"]="/mnt/.cold*"
-  ["/mnt/storage"]="/mnt/hot:/mnt/cold"
-  ["/mnt/temp_cold"]="/mnt/.temp_cold*:/mnt/.tcold*"
-  ["/mnt/temp_hot"]="/mnt/.temp_hot*:/mnt/.thot*"
-  ["/mnt/temp"]="/mnt/temp_hot:/mnt/temp_cold"
-)
 
-for target in "${!mounts[@]}"; do
-   src="${mounts[$target]}"
-   newline="$src $target $options"
-   if grep -qE "^[^#].*\s+$target\s+" /etc/fstab; then
-      sudo sed -i "s|^[^#].*\s\+$target\s\+.*|$newline|" /etc/fstab
-   else
-      echo "$newline" | sudo tee -a /etc/fstab > /dev/null
-   fi
-done
-# Swap configuration
+# Swap optimisation
 echo "[~] Configuring swap"
-for vram_drive in $(ls -a /mnt | grep .vram);do
-   size=$(df -h /mnt/$vram_drive | tail -n1 | awk '{print($4)}')
-   swapfile="/mnt/$vram_drive/$vram_drive.swap"
-   sudo fallocate -l $size $swapfile 2>/dev/null
-   sudo chmod 600 $swapfile 2>/dev/null
-   sudo mkswap $swapfile >/dev/null 2>/dev/null
-   sudo swapon $swapfile 2>/dev/null
-   if ! grep -qE "$swapfile none swap sw 0 0" /etc/fstab; then
-      echo "$swapfile none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+## config lz4
+echo "lz4" | sudo tee -a /etc/initramfs-tools/modules > /dev/null
+echo "lz4_compress" | sudo tee -a /etc/initramfs-tools/modules > /dev/null
+sudo update-initramfs -u
+## zram
+sudo apt install zram-tools
+echo -e "ALGO=lz4\nPERCENT=60\nPRIORITY=100" | sudo tee -a /etc/default/zramswap > /dev/null
+sudo service zramswap reload
+## zswap
+sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold/' /etc/default/grub
+sudo update-grub
+## vram
+for vram_drive in "$swapDrives";do
+   sudo mkswap /dev/$vram_drive >/dev/null 2>/dev/null
+   if ! grep -qE "/dev/$vram_drive none swap sw,pri=10 0 0" /etc/fstab; then
+      echo "/dev/$vram_drive none swap sw,pri=10 0 0" | sudo tee -a /etc/fstab > /dev/null
    fi
 done
-
+sudo swapon -a 2>/dev/null
+## nohang
+sudo apt install make fakeroot git
+git clone https://github.com/hakavlad/nohang.git && cd nohang
+./deb/build.sh
+sudo apt install ./deb/package.deb
+sudo systemctl enable --now nohang-desktop.service
+cd ..
+sudo rm -R nohang
 sudo mount -a 2>/dev/null
 
+# Main storage
+creating="1"
+id="1"
+while [[ "$creating" ]];do
+    echo "[+] Creating a tiered drive"
+    part=""
+    while [[ $inputed_part && ! $part ]];do
+        echo "[*] Select cold storage (empty to none) :"
+        read -p "[>] " inputed_part
+        part="$(ls /dev | grep ^$inputed_part$)"
+        if [[ $inputed_part && ! $part ]];then
+            echo "[!] Invalid partition"
+        fi
+    done
+    coldStorage="$part"
 
-# hot-cold storage management
+    while [[ $inputed_part && ! $part ]];do
+        echo "[*] Select hot storage (empty to none) :"
+        read -p "[>] " inputed_part
+        part="$(ls /dev | grep ^$inputed_part$)"
+        if [[ $inputed_part && ! $part ]];then
+            echo "[!] Invalid partition"
+        fi
+    done
+    hotStorage="$part"
+
+    while [[ $inputed_part && ! $part ]];do
+        echo "[*] Select ssd caching (empty to none) :"
+        read -p "[>] " inputed_part
+        part="$(ls /dev | grep ^$inputed_part$)"
+        if [[ $inputed_part && ! $part ]];then
+            echo "[!] Invalid partition"
+        fi
+    done
+    ssdCaching="$part"
+
+    if [[ ! "$coldStorage$hotStorage" ]]; then echo "[!] Cannot create empty LV"; else
+        options="--replicas=1 --compression=lz4"
+        meta=""
+        if [[ "$ssdCaching" ]]; then
+            options="$options --label="caching" /dev/$ssdCaching --promote_target=/dev/$ssdCaching"
+            if [[ ! "$meta" ]]; then meta="$ssdCaching" fi
+        fi
+        if [[ "$hotStorage" ]]; then
+            options="$options --label="hot" /dev/$hotStorage --foreground_target=/dev/$hotStorage"
+            if [[ ! "$meta" ]]; then meta="$hotStorage" fi
+        fi
+        if [[ "$coldStorage" ]]; then
+            options="$options --label="cold" /dev/$coldStorage --background_target=/dev/$coldStorage"
+            if [[ ! "$meta" ]]; then meta="$coldStorage" fi
+        fi
+        options="$options --metadata_target=/dev/$meta"
+        uuid="$(sudo bcachefs format $options | grep 'External UUID' | awk '{print($3)}')"
+        sudo mkdir -p /mnt/.tieredDrive$id
+        echo "UUID=$uuid /mnt/.tieredDrive$id bcachefs defaults 0 0" | sudo tee -a /etc/fstab > /dev/null
+    fi
+
+    read -p "[?] Continue Creating tiered drives ? (empty to stop) :" creating
+    id=$((id+1))
+done
+sudo mount -a 2>/dev/null
+
+## Manage Snap raid & Parity
+inputed_part="1"
+parityDrives=""
+while [[ "$inputed_part" ]];do
+    part=""
+    while [[ $inputed_part && ! $part ]];do
+        echo "[*] Select parity partition (empty to stop) :"
+        read -p "[>] " inputed_part
+        part="$(ls /dev | grep ^$inputed_part$)"
+        if [[ $inputed_part && ! $part ]];then
+            echo "[!] Invalid partition"
+        fi
+    done
+    parityDrives="$part $parityDrives"
+done
+
+sudo touch /etc/snapraid.conf
+for drive in "$parityDrives"; do echo "parity /dev/$drive" | sudo tee -a /etc/snapraid.conf >/dev/null; done
+for data in "$(ls -a /mnt | grep .tieredDrive)"; do
+    touch /mnt/$data/snapraid.content
+    echo "content /mnt/$data/snapraid.content" | sudo tee -a /etc/snapraid.conf
+    echo "data $data /mnt/$data" | sudo tee -a /etc/snapraid.conf
+done
+
+## Merge with mergerfs
+options="fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0"
+echo "/mnt/.tieredDrive* /mnt/content $options" | sudo tee -a /etc/fstab > /dev/null
+
+# Manage snapraid routine
 wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/storage_manager.sh -q >/dev/null
 chmod +x storage_manager.sh
 sudo mkdir -p /opt/homeserver
@@ -220,9 +312,9 @@ if [[ ! -f /home/ansible/.vgpu_unlocked ]]; then
     echo "[~] Setting up iommu"
     vendor_id=$(cat /proc/cpuinfo | grep vendor_id | awk 'NR==1{print $3}')
     if [[ "$vendor_id" = "AuthenticAMD" ]];then
-    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet amd_iommu=on iommu=pt"/' /etc/default/grub
+    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet amd_iommu=on iommu=pt/' /etc/default/grub
     else
-    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt"/' /etc/default/grub
+    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt/' /etc/default/grub
     fi
     sudo update-grub >/dev/null 2>/dev/null
 
@@ -265,25 +357,6 @@ if [[ "$(hostname --ip-address)" != "$ip" ]]; then
     sudo rm /etc/hosts.bck
     echo "[+] Hostname ip setted to $ip"
 fi
-
-## Add proxmox VE repo
-echo "[~] Adding proxmox VE repo"
-if [[ ! -f '/etc/apt/sources.list.d/pve-install-repo.list' || ! "$(cat /etc/apt/sources.list.d/pve-install-repo.list | grep 'deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription')" ]]; then
-   echo "deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription" | sudo tee /etc/apt/sources.list.d/pve-install-repo.list > /dev/null
-fi
-if [[ ! -f /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg || "$(sha512sum /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg | awk '{print($1)}')" != "7da6fe34168adc6e479327ba517796d4702fa2f8b4f0a9833f5ea6e6b48f6507a6da403a274fe201595edc86a84463d50383d07f64bdde2e3658108db7d6dc87" ]]; then
-   sudo wget https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg -q -O /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg >/dev/null -q >/dev/null
-   if [[ "$(sha512sum /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg | awk '{print($1)}')" != "7da6fe34168adc6e479327ba517796d4702fa2f8b4f0a9833f5ea6e6b48f6507a6da403a274fe201595edc86a84463d50383d07f64bdde2e3658108db7d6dc87" ]]; then
-      sudo rm /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg >/dev/null 2>/dev/null
-      exit 1
-   fi
-fi
-sudo mv ~/proxmox-release-bookworm.gpg /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
-sudo apt-get update -yq > /dev/null
-sudo apt-get upgrade -yq > /dev/null
-sudo apt-get full-upgrade -yq > /dev/null
-echo "[+] Proxmox VE registered"
-echo ""
 
 ## Install proxmox
 echo "[~] Installing proxmox kernel"
