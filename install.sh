@@ -174,7 +174,7 @@ echo -e "ALGO=lz4\nPERCENT=60\nPRIORITY=100" | sudo tee -a /etc/default/zramswap
 sudo service zramswap reload
 ## zswap
 sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold/' /etc/default/grub
-sudo update-grub
+sudo update-grub >/dev/null 2>/dev/null
 ## vram
 for vram_drive in "$swapDrives";do
    sudo mkswap /dev/$vram_drive >/dev/null 2>/dev/null
@@ -185,10 +185,10 @@ done
 sudo swapon -a 2>/dev/null
 ## nohang
 sudo apt-get install make fakeroot git -yq > /dev/null
-git clone https://github.com/hakavlad/nohang.git && cd nohang
-./deb/build.sh > /dev/null
+git clone https://github.com/hakavlad/nohang.git --quiet >/dev/null 2>/dev/null && cd nohang
+./deb/build.sh >/dev/null 2>/dev/null
 sudo apt-get install ./deb/package.deb -yq > /dev/null
-sudo systemctl enable --now nohang-desktop.service
+sudo systemctl enable --now nohang-desktop.service 2>/dev/null
 cd ..
 sudo rm -R nohang
 sudo mount -a 2>/dev/null
@@ -198,6 +198,7 @@ creating="1"
 id="1"
 while [[ "$creating" ]];do
     echo "[+] Creating a tiered drive"
+    inputed_part="1"
     part=""
     while [[ $inputed_part && ! $part ]];do
         echo "[*] Select cold storage (empty to none) :"
@@ -209,6 +210,8 @@ while [[ "$creating" ]];do
     done
     coldStorage="$part"
 
+    inputed_part="1"
+    part=""
     while [[ $inputed_part && ! $part ]];do
         echo "[*] Select hot storage (empty to none) :"
         read -p "[>] " inputed_part
@@ -219,6 +222,8 @@ while [[ "$creating" ]];do
     done
     hotStorage="$part"
 
+    inputed_part="1"
+    part=""
     while [[ $inputed_part && ! $part ]];do
         echo "[*] Select ssd caching (empty to none) :"
         read -p "[>] " inputed_part
@@ -233,16 +238,16 @@ while [[ "$creating" ]];do
         options="--replicas=1 --compression=lz4"
         meta=""
         if [[ "$ssdCaching" ]]; then
-            options="$options --label="caching" /dev/$ssdCaching --promote_target=/dev/$ssdCaching"
-            if [[ ! "$meta" ]]; then meta="$ssdCaching" fi
+            options="$options --label='caching' /dev/$ssdCaching --promote_target=/dev/$ssdCaching"
+            if [[ ! "$meta" ]]; then meta="$ssdCaching"; fi
         fi
         if [[ "$hotStorage" ]]; then
-            options="$options --label="hot" /dev/$hotStorage --foreground_target=/dev/$hotStorage"
-            if [[ ! "$meta" ]]; then meta="$hotStorage" fi
+            options="$options --label='hot' /dev/$hotStorage --foreground_target=/dev/$hotStorage"
+            if [[ ! "$meta" ]]; then meta="$hotStorage"; fi
         fi
         if [[ "$coldStorage" ]]; then
-            options="$options --label="cold" /dev/$coldStorage --background_target=/dev/$coldStorage"
-            if [[ ! "$meta" ]]; then meta="$coldStorage" fi
+            options="$options --label='cold' /dev/$coldStorage --background_target=/dev/$coldStorage"
+            if [[ ! "$meta" ]]; then meta="$coldStorage"; fi
         fi
         options="$options --metadata_target=/dev/$meta"
         uuid="$(sudo bcachefs format $options | grep 'External UUID' | awk '{print($3)}')"
@@ -378,8 +383,8 @@ echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin $(whoami) --
 options="--start $start --branch $branch --repository $repository"
 if [[ $nologs ]];then options="$options -nl";fi
 echo "$artifacts/step2.sh $options" >> ~/.bash_profile
-if [[ ! grep -qE "export TERM=xterm" ~/.bash_profile ]]; then echo 'export TERM=xterm' >> ~/.bash_profile; fi
-if [[ ! grep -qE "export TERM=xterm" ~/.profile ]]; then echo 'export TERM=xterm' >> ~/.profile; fi
+if [[ ! "$(grep -qE 'export TERM=xterm')" ~/.bash_profile ]]; then echo 'export TERM=xterm' >> ~/.bash_profile; fi
+if [[ ! "$(grep -qE 'export TERM=xterm')" ~/.profile ]]; then echo 'export TERM=xterm' >> ~/.profile; fi
 
 
 ## Reboot
