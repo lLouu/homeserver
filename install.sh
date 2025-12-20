@@ -120,6 +120,15 @@ if [[ ! -f /etc/apt/trusted.gpg.d/proxmox-release-trixie.gpg || "$(sha512sum /et
    fi
 fi
 ## bcache fs repo
+if [[ ! -f '/etc/apt/sources.list.d/apt.bcachefs.org.sources' || ! "$(sha512sum /etc/apt/sources.list.d/apt.bcachefs.org.sources | awk '{print($1)}')" != "d809de15b4ce337469f6abdc5b5a0ab7b8957ce4c118b5c40335fd0e4a693f5513094cf2e1a43b1bdd308c05af33a744bb8f2da18183d95cb7bd32d88df369eb" ]]; then
+   sudo tee /etc/apt/sources.list.d/apt.bcachefs.org.sources > /dev/null <<EOF
+Types: deb deb-src
+URIs: https://apt.bcachefs.org/trixie/
+Suites: bcachefs-tools-release
+Components: main
+Signed-By: /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc
+EOF
+fi
 if [[ ! -f /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc || "$(sha512sum /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc | awk '{print($1)}')" != "97ae039fed3b22b65840c91e94aef20f0cac3698ef9e9aa4fce7417b2ace94618a87325ad628bd64dfbefc38d5412d1195b0fbb93875df3084b0637ac87a8345" ]]; then
    sudo wget https://apt.bcachefs.org/apt.bcachefs.org.asc -q -O /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc >/dev/null -q >/dev/null
    if [[ "$(sha512sum /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc | awk '{print($1)}')" != "97ae039fed3b22b65840c91e94aef20f0cac3698ef9e9aa4fce7417b2ace94618a87325ad628bd64dfbefc38d5412d1195b0fbb93875df3084b0637ac87a8345" ]]; then
@@ -279,9 +288,9 @@ done
 sudo touch /etc/snapraid.conf
 for drive in "$parityDrives"; do echo "parity /dev/$drive" | sudo tee -a /etc/snapraid.conf >/dev/null; done
 for data in "$(ls -a /mnt | grep .tieredDrive)"; do
-    touch /mnt/$data/snapraid.content
-    echo "content /mnt/$data/snapraid.content" | sudo tee -a /etc/snapraid.conf
-    echo "data $data /mnt/$data" | sudo tee -a /etc/snapraid.conf
+    sudo touch /mnt/$data/snapraid.content
+    echo "content /mnt/$data/snapraid.content" | sudo tee -a /etc/snapraid.conf >/dev/null
+    echo "data $data /mnt/$data" | sudo tee -a /etc/snapraid.conf >/dev/null
 done
 
 ## Merge with mergerfs
