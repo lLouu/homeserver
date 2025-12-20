@@ -92,11 +92,11 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 
 # match the branch
 if [[ $check ]];then
-    wget https://raw.githubusercontent.com/llouu/homeserver/$branch/install.sh -q >/dev/null
+    wget https://raw.githubusercontent.com$repository/$branch/install.sh -q >/dev/null
     chmod +x install.sh
     options="--repository $repository --branch $branch -nc"
     if [[ $nologs ]]; then options="$options -nl"; fi
-    ./install.sh $options
+    ./install.sh $options $POSITIONAL_ARGS
     exit
 fi
 
@@ -120,7 +120,7 @@ if [[ ! -f /etc/apt/trusted.gpg.d/proxmox-release-trixie.gpg || "$(sha512sum /et
    fi
 fi
 ## bcache fs repo
-if [[ ! -f '/etc/apt/sources.list.d/apt.bcachefs.org.sources' || ! "$(sha512sum /etc/apt/sources.list.d/apt.bcachefs.org.sources | awk '{print($1)}')" != "d809de15b4ce337469f6abdc5b5a0ab7b8957ce4c118b5c40335fd0e4a693f5513094cf2e1a43b1bdd308c05af33a744bb8f2da18183d95cb7bd32d88df369eb" ]]; then
+if [[ ! -f '/etc/apt/sources.list.d/apt.bcachefs.org.sources' || ! "$(sha512sum /etc/apt/sources.list.d/apt.bcachefs.org.sources | awk '{print($1)}')" != "e7ff64fbbc7f6b6fb426ce4040bbce44739691eba728f7711d079633ef15989c249e12dcd8b51ca2131d8438061c2e767ebd9178dc9ce37b415c29f1a6b44088" ]]; then
    sudo tee /etc/apt/sources.list.d/apt.bcachefs.org.sources > /dev/null <<EOF
 Types: deb deb-src
 URIs: https://apt.bcachefs.org/trixie/
@@ -244,7 +244,7 @@ while [[ "$creating" ]];do
     ssdCaching="$part"
 
     if [[ ! "$coldStorage$hotStorage" ]]; then echo "[!] Cannot create empty LV"; else
-        options="--replicas=1 --compression=lz4"
+        options="-f --replicas=1 --compression=lz4"
         meta=""
         if [[ "$ssdCaching" ]]; then
             options="$options --label='caching' /dev/$ssdCaching --promote_target=/dev/$ssdCaching"
