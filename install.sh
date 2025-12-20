@@ -167,9 +167,9 @@ echo "[~] Configuring swap"
 ## config lz4
 echo "lz4" | sudo tee -a /etc/initramfs-tools/modules > /dev/null
 echo "lz4_compress" | sudo tee -a /etc/initramfs-tools/modules > /dev/null
-sudo update-initramfs -u
+sudo update-initramfs -u > /dev/null
 ## zram
-sudo apt install zram-tools
+sudo apt-get install zram-tools -yq > /dev/null
 echo -e "ALGO=lz4\nPERCENT=60\nPRIORITY=100" | sudo tee -a /etc/default/zramswap > /dev/null
 sudo service zramswap reload
 ## zswap
@@ -184,10 +184,10 @@ for vram_drive in "$swapDrives";do
 done
 sudo swapon -a 2>/dev/null
 ## nohang
-sudo apt install make fakeroot git
+sudo apt-get install make fakeroot git -yq > /dev/null
 git clone https://github.com/hakavlad/nohang.git && cd nohang
-./deb/build.sh
-sudo apt install ./deb/package.deb
+./deb/build.sh > /dev/null
+sudo apt-get install ./deb/package.deb -yq > /dev/null
 sudo systemctl enable --now nohang-desktop.service
 cd ..
 sudo rm -R nohang
@@ -251,7 +251,7 @@ while [[ "$creating" ]];do
     fi
 
     read -p "[?] Continue Creating tiered drives ? (empty to stop) :" creating
-    id=$((id+1))
+    id=$(($id+1))
 done
 sudo mount -a 2>/dev/null
 
