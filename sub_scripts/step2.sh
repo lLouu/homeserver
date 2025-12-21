@@ -78,6 +78,9 @@ sudo apt-get remove linux-image-amd64 'linux-image-6.1*' os-prober -yq > /dev/nu
 sudo update-grub >/dev/null 2>/dev/null
 echo "[+] Debian kernel Removed"
 
+# Remove entreprise proxmox repo
+sudo mv /etc/apt/sources.list.d/pve-enterprise.sources /etc/apt/sources.list.d/pve-enterprise.sources.disabled
+
 # Unlock vGPU
 echo "[~] Starting vGPU unlock"
 echo "[~] Downloading dependencies"
@@ -238,34 +241,34 @@ echo "[+] API setted up"
 echo "[>] The terraform user password is '$NEW_PASS'"
 
 if [[ ! "$virtu" ]]; then
-# Download ISO store on /var/lib/vz/template/iso/
-echo "[~] Downloading ISO Librarie"
-## Alpine
-if [[ ! -f "/var/lib/vz/template/iso/alpine-virt-3.21.2-aarch64.iso" || "$(sha256sum /var/lib/vz/template/iso/alpine-virt-3.21.2-aarch64.iso | awk '{print($1)}')" != "42918974513750a6923393f3074c3bb226badfce4a0d0f35f90377fd789fda1f" ]]; then
-   echo "[~] Downloading Alpine ISO"
-   wget https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-virt-3.22.1-x86_64.iso -q > /dev/null
-   if [[ "$(sha256sum alpine-virt-3.21.2-aarch64.iso | awk '{print($1)}')" != "42918974513750a6923393f3074c3bb226badfce4a0d0f35f90377fd789fda1f" ]]; then
-      echo "[!] Could not download Alpine ISO"
-      rm alpine-virt-3.21.2-aarch64.iso
-   else
-      sudo mv alpine-virt-3.21.2-aarch64.iso /var/lib/vz/template/iso/alpine-virt-3.21.2-aarch64.iso
-      echo "[+] Alpine ISO added to ISO local library"
+   # Download ISO store on /var/lib/vz/template/iso/
+   echo "[~] Downloading ISO Librarie"
+   ## Alpine
+   if [[ ! -f "/var/lib/vz/template/iso/alpine-virt-3.22.1-x86_64.iso" || "$(sha256sum /var/lib/vz/template/iso/alpine-virt-3.22.1-x86_64.iso | awk '{print($1)}')" != "42918974513750a6923393f3074c3bb226badfce4a0d0f35f90377fd789fda1f" ]]; then
+      echo "[~] Downloading Alpine ISO"
+      wget https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-virt-3.22.1-x86_64.iso -q > /dev/null
+      if [[ "$(sha256sum alpine-virt-3.22.1-x86_64.iso | awk '{print($1)}')" != "42918974513750a6923393f3074c3bb226badfce4a0d0f35f90377fd789fda1f" ]]; then
+         echo "[!] Could not download Alpine ISO"
+         rm alpine-virt-3.22.1-x86_64.iso
+      else
+         sudo mv alpine-virt-3.22.1-x86_64.iso /var/lib/vz/template/iso/alpine-virt-3.22.1-x86_64.iso
+         echo "[+] Alpine ISO added to ISO local library"
+      fi
    fi
-fi
 
-## Pfsense
-if [[ ! -f "/var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso" || "$(sha256sum /var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso | awk '{print($1)}')" != "441005f79ea0c155bc4b830a2b4207f8c0804cf7b075d2a6489c0a136cbc5d51" ]]; then
-   echo "[~] Downloading Pfsense ISO"
-   wget https://atxfiles.netgate.com/mirror/downloads/pfSense-CE-2.7.2-RELEASE-amd64.iso.gz -q > /dev/null
-   gunzip pfSense-CE-2.7.2-RELEASE-amd64.iso.gz > /dev/null
-   if [[ "$(sha256sum pfSense-CE-2.7.2-RELEASE-amd64.iso | awk '{print($1)}')" != "441005f79ea0c155bc4b830a2b4207f8c0804cf7b075d2a6489c0a136cbc5d51" ]]; then
-      echo "[!] Could not download Pfsense ISO"
-      rm pfSense-CE-2.7.2-RELEASE-amd64.iso
-   else
-      sudo mv pfSense-CE-2.7.2-RELEASE-amd64.iso /var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso
-      echo "[+] Pfsense ISO added to ISO local library"
+   ## Pfsense
+   if [[ ! -f "/var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso" || "$(sha256sum /var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso | awk '{print($1)}')" != "441005f79ea0c155bc4b830a2b4207f8c0804cf7b075d2a6489c0a136cbc5d51" ]]; then
+      echo "[~] Downloading Pfsense ISO"
+      wget https://atxfiles.netgate.com/mirror/downloads/pfSense-CE-2.7.2-RELEASE-amd64.iso.gz -q > /dev/null
+      gunzip pfSense-CE-2.7.2-RELEASE-amd64.iso.gz > /dev/null
+      if [[ "$(sha256sum pfSense-CE-2.7.2-RELEASE-amd64.iso | awk '{print($1)}')" != "441005f79ea0c155bc4b830a2b4207f8c0804cf7b075d2a6489c0a136cbc5d51" ]]; then
+         echo "[!] Could not download Pfsense ISO"
+         rm pfSense-CE-2.7.2-RELEASE-amd64.iso
+      else
+         sudo mv pfSense-CE-2.7.2-RELEASE-amd64.iso /var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso
+         echo "[+] Pfsense ISO added to ISO local library"
+      fi
    fi
-fi
 fi
 
 ## Do not expose host services on other places than vmbr4
@@ -291,7 +294,8 @@ echo "[~] Downloading terraform, packer and ansible"
 wget -q -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 newdpkg="deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main"
 echo "$newdpkg" | sudo tee /etc/apt/sources.list.d/tmp_hashicorp.list >/dev/null
-sudo apt update -yq >/dev/null 2>/dev/null && sudo apt install terraform packer -yq >/dev/null 2>/dev/null
+sudo apt-get update -yq >/dev/null 2>/dev/null
+sudo apt-get install terraform packer -yq >/dev/null 2>/dev/null
 sudo pip install ansible -q >/dev/null 2>/dev/null
 
 # Deploying initial state
@@ -365,12 +369,12 @@ cd ../../..
 sudo rm -r homeserver
 
 # Unsetting terraform & Ansible
-sudo apt -yq remove terraform packer >/dev/null 2>/dev/null
+sudo apt-get -yq remove terraform packer >/dev/null 2>/dev/null
 sudo pip uninstall ansible -yq >/dev/null 2>/dev/null
 sudo rm /usr/share/keyrings/hashicorp-archive-keyring.gpg
 sudo rm /etc/apt/sources.list.d/tmp_hashicorp.list
 
-sudo apt -yq autoremove >/dev/null 2>/dev/null
+sudo apt-get -yq autoremove >/dev/null 2>/dev/null
 
 echo "[*] Script executed in $(date -d@$(($(date +%s)-$start)) -u +%H:%M:%S)"
 stop
