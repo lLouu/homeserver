@@ -321,22 +321,24 @@ sudo mv storage_manager.sh /opt/homeserver/storage_manager
 echo "[+] Mounting done"
 
 # Unlock vGPU
-if [[ ! -f /home/ansible/.vgpu_unlocked ]]; then
-    echo "[~] Starting vGPU unlock"
-    echo "[~] Downloading dependencies"
-    sudo apt-get install python3 python3-pip dkms git jq mdevctl megatools -yq > /dev/null
-    for py in $(ls /usr/lib/ | grep python3.);do
-        if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
-            sudo mv /usr/lib/$py/EXTERNALLY-MANAGED /usr/lib/$py/EXTERNALLY-MANAGED.old
-        fi
-    done
-    pip3 install frida -q >/dev/null 2>/dev/null
+echo "[~] Starting vGPU unlock"
+echo "[~] Downloading dependencies"
+sudo apt-get install python3 python3-pip dkms git jq mdevctl megatools -yq > /dev/null
+for py in $(ls /usr/lib/ | grep python3.);do
+    if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
+        sudo mv /usr/lib/$py/EXTERNALLY-MANAGED /usr/lib/$py/EXTERNALLY-MANAGED.old
+    fi
+done
+pip3 install frida -q >/dev/null 2>/dev/null
 
+if [[ ! -d /lib/vgpu_unlock ]]; then
     echo "[~] Fetching script"
     git clone https://github.com/DualCoder/vgpu_unlock --quiet >/dev/null 2>/dev/null
     chmod -R +x vgpu_unlock
     sudo mv vgpu_unlock /lib/
+fi
 
+if [[ ! "$(grep GRUB_CMDLINE_LINUX_DEFAULT=.*iommu=on.*iommu=pt /etc/default/grub)"  ]]; then
     echo "[~] Setting up iommu"
     vendor_id=$(cat /proc/cpuinfo | grep vendor_id | awk 'NR==1{print $3}')
     if [[ "$vendor_id" = "AuthenticAMD" ]];then
@@ -345,19 +347,21 @@ if [[ ! -f /home/ansible/.vgpu_unlocked ]]; then
     sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt/' /etc/default/grub
     fi
     sudo update-grub >/dev/null 2>/dev/null
+fi
 
-    echo -e "\nvfio\nvfio_iommu_typel\nvfio_pci\nvfio_virqfd\n" | sudo tee -a /etc/modules >/dev/null
-    echo "options vfio_iommu_typel allow_unsafe_interrupts=1" | sudo tee /etc/modprobe.d/iommu_unsafe_interrupts.conf >/dev/null
-    echo "options kvm ignore_msrs=1" | sudo tee /etc/modprobe.d/kvm_msrs.conf >/dev/null
-    echo "blacklist nouveau" | sudo tee -a /etc/modprobe.d/blacklist.conf >/dev/null
-    sudo update-initramfs -u >/dev/null 2>/dev/null
+echo -e "\nvfio\nvfio_iommu_typel\nvfio_pci\nvfio_virqfd\n" | sudo tee -a /etc/modules >/dev/null
+echo "options vfio_iommu_typel allow_unsafe_interrupts=1" | sudo tee /etc/modprobe.d/iommu_unsafe_interrupts.conf >/dev/null
+echo "options kvm ignore_msrs=1" | sudo tee /etc/modprobe.d/kvm_msrs.conf >/dev/null
+echo "blacklist nouveau" | sudo tee -a /etc/modprobe.d/blacklist.conf >/dev/null
+sudo update-initramfs -u >/dev/null 2>/dev/null
 
+com_version="19.3"
+version="580.105.06"
+if [[ ! "$(sudo dkms status | grep nvidia/$version)" ]]; then
     echo "[~] Fetching Drivers"
     # https://github.com/wvthoog/proxmox-vgpu-installer/blob/main/proxmox-installer.sh
     # megadl https://mega.nz/file/JjtyXRiC#cTIIvOIxu8vf-RdhaJMGZAwSgYmqcVEKNNnRRJTwDFI >/dev/null 2>/dev/null
     # https://www.reddit.com/r/Proxmox/comments/1b9ssk8/anyone_willing_to_share_nvidia_enterprise_drivers/
-    com_version="19.3"
-    version="580.105.06"
     wget https://alist.homelabproject.cc/p/foxipan/vGPU/$com_version/NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run -q >/dev/null
     chmod +x NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run
     sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run --dkms -m=kernel -s >/dev/null 2>/dev/null
@@ -367,10 +371,8 @@ if [[ ! -f /home/ansible/.vgpu_unlocked ]]; then
     sudo sed -i 's/cpuset.h>/cpuset.h>\n#include "\/lib\/vgpu_unlock\/vgpu_unlock_hooks.c"/' /usr/src/nvidia-$version/nvidia/os-interface.c
     echo "ldflags-y += -T /lib/vgpu_unlock/kern.ld" | sudo tee -a /usr/src/nvidia-$version/nvidia/nvidia.Kbuild >/dev/null
     echo "[~] Building driver"
-    dkms remove -m nvidia -v $version --all >/dev/null 2>/dev/null
-    dkms install -m nvidia -v $version >/dev/null 2>/dev/null
-
-    touch /home/ansible/.vgpu_unlocked
+    sudo dkms remove -m nvidia -v $version --all >/dev/null 2>/dev/null
+    sudo dkms install -m nvidia -v $version >/dev/null 2>/dev/null
 fi
 
 # Proxmox installation
