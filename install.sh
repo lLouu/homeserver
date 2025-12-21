@@ -358,9 +358,9 @@ if [[ ! -f /home/ansible/.vgpu_unlocked ]]; then
     # https://www.reddit.com/r/Proxmox/comments/1b9ssk8/anyone_willing_to_share_nvidia_enterprise_drivers/
     com_version="19.3"
     version="580.105.06"
-    wget https://alist.homelabproject.cc/p/foxipan/vGPU/$com_version/NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run
-    chmod +x NVIDIA-Linux-x86_64-$version-vgpu-kvm.run
-    sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm.run --dkms -m=kernel -s >/dev/null 2>/dev/null
+    wget https://alist.homelabproject.cc/p/foxipan/vGPU/$com_version/NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run -q >/dev/null
+    chmod +x NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run
+    sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run --dkms -m=kernel -s >/dev/null 2>/dev/null
     sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpud.service
     sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpu-mgr.service
     sudo systemctl daemon-reload
