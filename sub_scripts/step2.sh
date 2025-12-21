@@ -24,6 +24,7 @@ printf "Defaults\ttimestamp_timeout=-1\n" | sudo tee /etc/sudoers.d/tmp > /dev/n
 branch="main"
 start=$(date +%s)
 nologs=""
+virtu=""
 repository="/llouu/homeserver"
 
 POSITIONAL_ARGS=()
@@ -50,6 +51,10 @@ while [[ $# -gt 0 ]]; do
       nologs="1"
       shift
       ;;
+    -v|--virtu)
+      virtu="1"
+      shift
+      ;;
     *)
       POSITIONAL_ARGS+=("$1") # save positional arg
       shift # past argument
@@ -72,6 +77,61 @@ echo "[~] Removing debian kernel"
 sudo apt-get remove linux-image-amd64 'linux-image-6.1*' os-prober -yq > /dev/null
 sudo update-grub >/dev/null 2>/dev/null
 echo "[+] Debian kernel Removed"
+
+# Unlock vGPU
+echo "[~] Starting vGPU unlock"
+echo "[~] Downloading dependencies"
+sudo apt-get install python3 python3-pip dkms git jq mdevctl -yq > /dev/null
+for py in $(ls /usr/lib/ | grep python3.);do
+    if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
+        sudo mv /usr/lib/$py/EXTERNALLY-MANAGED /usr/lib/$py/EXTERNALLY-MANAGED.old
+    fi
+done
+pip3 install frida -q >/dev/null 2>/dev/null
+
+if [[ ! -d /lib/vgpu_unlock ]]; then
+    echo "[~] Fetching script"
+    git clone https://github.com/DualCoder/vgpu_unlock --quiet >/dev/null 2>/dev/null
+    chmod -R +x vgpu_unlock
+    sudo mv vgpu_unlock /lib/
+fi
+
+if [[ ! "$(grep GRUB_CMDLINE_LINUX_DEFAULT=.*iommu=on.*iommu=pt /etc/default/grub)"  ]]; then
+    echo "[~] Setting up iommu"
+    vendor_id=$(cat /proc/cpuinfo | grep vendor_id | awk 'NR==1{print $3}')
+    if [[ "$vendor_id" = "AuthenticAMD" ]];then
+    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet amd_iommu=on iommu=pt/' /etc/default/grub
+    else
+    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt/' /etc/default/grub
+    fi
+    sudo update-grub >/dev/null 2>/dev/null
+
+    echo -e "\nvfio\nvfio_iommu_typel\nvfio_pci\nvfio_virqfd\n" | sudo tee -a /etc/modules >/dev/null
+    echo "options vfio_iommu_typel allow_unsafe_interrupts=1" | sudo tee /etc/modprobe.d/iommu_unsafe_interrupts.conf >/dev/null
+    echo "options kvm ignore_msrs=1" | sudo tee /etc/modprobe.d/kvm_msrs.conf >/dev/null
+    echo "blacklist nouveau" | sudo tee -a /etc/modprobe.d/blacklist.conf >/dev/null
+    sudo update-initramfs -u >/dev/null 2>/dev/null
+fi
+
+com_version="19.3"
+version="580.105.06"
+if [[ ! "$(sudo dkms status | grep nvidia/$version)" ]]; then
+    echo "[~] Fetching Drivers"
+    # https://github.com/wvthoog/proxmox-vgpu-installer/blob/main/proxmox-installer.sh
+    # megadl https://mega.nz/file/JjtyXRiC#cTIIvOIxu8vf-RdhaJMGZAwSgYmqcVEKNNnRRJTwDFI >/dev/null 2>/dev/null
+    # https://www.reddit.com/r/Proxmox/comments/1b9ssk8/anyone_willing_to_share_nvidia_enterprise_drivers/
+    wget https://alist.homelabproject.cc/p/foxipan/vGPU/$com_version/NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run -q >/dev/null
+    chmod +x NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run
+    sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run --dkms -m=kernel -s >/dev/null 2>/dev/null
+    sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpud.service
+    sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpu-mgr.service
+    sudo systemctl daemon-reload
+    sudo sed -i 's/cpuset.h>/cpuset.h>\n#include "\/lib\/vgpu_unlock\/vgpu_unlock_hooks.c"/' /usr/src/nvidia-$version/nvidia/os-interface.c
+    echo "ldflags-y += -T /lib/vgpu_unlock/kern.ld" | sudo tee -a /usr/src/nvidia-$version/nvidia/nvidia.Kbuild >/dev/null
+    echo "[~] Building driver"
+    sudo dkms remove -m nvidia -v $version --all >/dev/null 2>/dev/null
+    sudo dkms install -m nvidia -v $version >/dev/null 2>/dev/null
+fi
 
 ## Create network bridges and network configuration
 WAN=$(cat /etc/network/interfaces | grep 'dhcp' | awk '{print($2)}')
@@ -156,7 +216,7 @@ lines=(
 )
 
 for line in "${lines[@]}"; do
-   if ! grep -qxF "$line" "$file"; then
+   if [[ ! "$(grep -qxF "$line" $file)" ]]; then
       echo "$line" | sudo tee -a /etc/pve/user.cfg > /dev/null
    fi
 done
@@ -177,6 +237,7 @@ echo "terraform@pve!$TOKEN_ID $TOKEN_SECRET" | sudo tee -a /etc/pve/priv/token.c
 echo "[+] API setted up"
 echo "[>] The terraform user password is '$NEW_PASS'"
 
+if [[ ! "$virtu" ]]; then
 # Download ISO store on /var/lib/vz/template/iso/
 echo "[~] Downloading ISO Librarie"
 ## Alpine
@@ -204,6 +265,7 @@ if [[ ! -f "/var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso" || "$(s
       sudo mv pfSense-CE-2.7.2-RELEASE-amd64.iso /var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso
       echo "[+] Pfsense ISO added to ISO local library"
    fi
+fi
 fi
 
 ## Do not expose host services on other places than vmbr4
@@ -234,7 +296,7 @@ sudo pip install ansible -q >/dev/null 2>/dev/null
 
 # Deploying initial state
 echo "[~] Fetching for configuration files"
-git clone -b $branch https://github.com/llouu/homeserver --quiet >/dev/null 2>/dev/null
+git clone -b $branch https://github.com$repository --quiet >/dev/null 2>/dev/null
 cd homeserver/jenkins/terraform
 mv ../configs/* ./
 mv ../packer/* ./
@@ -253,23 +315,27 @@ echo $ROOT_PWD | sudo tee /root/.virt_roots.pwd >/dev/null && sudo chmod 400 /ro
 ## Create Pfsense packer config, and deploy the firewall
 echo "[~] Creating firewall template"
 packer init pfsense.pkr.hcl >/dev/null
-packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub)" -var 'networks=[0,1,2,3,4,5]' pfsense.pkr.hcl >/dev/null
+if [[ ! "$virtu" ]]; then
+   packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub)" -var 'networks=[0,1,2,3,4,5]' pfsense.pkr.hcl >/dev/null
+fi
 
 echo "[~] Deploying firewall"
 terraform init >/dev/null
 echo '[]' | terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json -out plan >/dev/null
-terraform apply "plan" >/dev/null
+if [[ ! "$virtu" ]]; then terraform apply "plan" >/dev/null; fi
 rm plan
 
 ## Create Packer template of alpine and deploy jenkins agent
 echo "[~] Creating Alpine template"
 packer init alpine.pkr.hcl >/dev/null
-packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub)" -var "root_pwd=$ROOT_PWD" alpine.pkr.hcl >/dev/null
+if [[ ! "$virtu" ]]; then
+   packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub)" -var "root_pwd=$ROOT_PWD" alpine.pkr.hcl >/dev/null
+fi
 
 echo "[~] Deploying Jenkins agent"
 terraform init >/dev/null
 terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json --var-file=init.tfvars.json -out plan >/dev/null
-terraform apply "plan" >/dev/null
+if [[ ! "$virtu" ]]; then terraform apply "plan" >/dev/null; fi
 rm plan
 
 ## Create remote ansible user

@@ -42,6 +42,7 @@ branch="main"
 check="1"
 nologs=""
 wait=""
+virtu=""
 repository="/llouu/homeserver"
 
 POSITIONAL_ARGS=()
@@ -71,6 +72,10 @@ while [[ $# -gt 0 ]]; do
       wait="1"
       shift
       ;;
+    -v|--virtu)
+      virtu="1"
+      shift
+      ;;
     -h|--help)
       echo "[~] Github options"
       echo "[*] -r | --repository <repo> (default: /llouu/homeserver) - Use this repository for reference (eg. use of a fork)"
@@ -80,6 +85,7 @@ while [[ $# -gt 0 ]]; do
       echo "[~] Misc options"
       echo "[*] -w | --wait | --no-reboot - Disable auto-reboot after script execution"
       echo "[*] -nl | --no-log - Disable logging"
+      echo "[*] -v | --virtu - VM mode (no proxmox configuration, expecting VM in local network)"
       echo "[*] -h | --help - Get help"
       stop
       ;;
@@ -156,7 +162,7 @@ echo ""
 
 # Manage data 
 echo "[~] Mounting drives"
-sudo apt-get install pve-headers linux-headers-$(uname -r) bcachefs-tools bcachefs-kernel-dkms snapraid mergerfs -yq > /dev/null
+sudo apt-get install pve-headers bcachefs-tools bcachefs-kernel-dkms snapraid mergerfs -yq > /dev/null
 
 # Mount disks
 echo "[*] Please ensure to have done your partitionning before the script execution. CTRL+C if that has not be done yet"
@@ -178,19 +184,8 @@ while [[ "$inputed_part" ]];do
     swapDrives+=($part)
 done
 
-# Swap optimisation
+# Swap configuration
 echo "[~] Configuring swap"
-## config lz4
-echo "lz4" | sudo tee -a /etc/initramfs-tools/modules > /dev/null
-echo "lz4_compress" | sudo tee -a /etc/initramfs-tools/modules > /dev/null
-sudo update-initramfs -u > /dev/null
-## zram
-sudo apt-get install zram-tools -yq > /dev/null
-echo -e "ALGO=lz4\nPERCENT=60\nPRIORITY=100" | sudo tee -a /etc/default/zramswap > /dev/null
-sudo service zramswap reload
-## zswap
-sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold/' /etc/default/grub
-sudo update-grub >/dev/null 2>/dev/null
 ## vram
 for vram_drive in ${swapDrives[@]};do
    sudo mkswap /dev/$vram_drive >/dev/null 2>/dev/null
@@ -199,14 +194,6 @@ for vram_drive in ${swapDrives[@]};do
    fi
 done
 sudo swapon -a 2>/dev/null
-## nohang
-sudo apt-get install make fakeroot git -yq > /dev/null
-git clone https://github.com/hakavlad/nohang.git --quiet >/dev/null 2>/dev/null && cd nohang
-./deb/build.sh >/dev/null 2>/dev/null
-sudo apt-get install ./deb/package.deb -yq > /dev/null
-sudo systemctl enable --now nohang-desktop.service 2>/dev/null
-cd ..
-sudo rm -R nohang
 
 # Main storage
 creating="1"
@@ -312,68 +299,35 @@ if [[ ! "$(grep "/mnt/.tieredDrive* /mnt/content $options" /etc/fstab)" ]]; then
 fi
 
 # Manage snapraid routine
-wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/storage_manager.sh -q >/dev/null
+wget https://raw.githubusercontent.com$repository/$branch/sub_scripts/storage_manager.sh -q >/dev/null
 chmod +x storage_manager.sh
 sudo mkdir -p /opt/homeserver
 sudo mv storage_manager.sh /opt/homeserver/storage_manager
 (crontab -l 2>/dev/null | grep -v "/opt/homeserver/storage_manager" ; echo "0 0 */3 * * /opt/homeserver/storage_manager") | crontab -
 
+# Swap optimisation
+echo "[~] Optimizing swap"
+## config lz4
+echo "lz4" | sudo tee -a /etc/initramfs-tools/modules > /dev/null
+echo "lz4_compress" | sudo tee -a /etc/initramfs-tools/modules > /dev/null
+sudo update-initramfs -u > /dev/null
+## zram
+sudo apt-get install zram-tools -yq > /dev/null
+echo -e "ALGO=lz4\nPERCENT=60\nPRIORITY=100" | sudo tee -a /etc/default/zramswap > /dev/null
+sudo service zramswap reload
+## zswap
+sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold/' /etc/default/grub
+sudo update-grub >/dev/null 2>/dev/null
+## nohang
+sudo apt-get install make fakeroot git -yq > /dev/null
+git clone https://github.com/hakavlad/nohang.git --quiet >/dev/null 2>/dev/null && cd nohang
+./deb/build.sh >/dev/null 2>/dev/null
+sudo apt-get install ./deb/package.deb -yq > /dev/null
+sudo systemctl enable --now nohang-desktop.service 2>/dev/null
+cd ..
+sudo rm -R nohang
+
 echo "[+] Mounting done"
-
-# Unlock vGPU
-echo "[~] Starting vGPU unlock"
-echo "[~] Downloading dependencies"
-sudo apt-get install python3 python3-pip dkms git jq mdevctl megatools -yq > /dev/null
-for py in $(ls /usr/lib/ | grep python3.);do
-    if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
-        sudo mv /usr/lib/$py/EXTERNALLY-MANAGED /usr/lib/$py/EXTERNALLY-MANAGED.old
-    fi
-done
-pip3 install frida -q >/dev/null 2>/dev/null
-
-if [[ ! -d /lib/vgpu_unlock ]]; then
-    echo "[~] Fetching script"
-    git clone https://github.com/DualCoder/vgpu_unlock --quiet >/dev/null 2>/dev/null
-    chmod -R +x vgpu_unlock
-    sudo mv vgpu_unlock /lib/
-fi
-
-if [[ ! "$(grep GRUB_CMDLINE_LINUX_DEFAULT=.*iommu=on.*iommu=pt /etc/default/grub)"  ]]; then
-    echo "[~] Setting up iommu"
-    vendor_id=$(cat /proc/cpuinfo | grep vendor_id | awk 'NR==1{print $3}')
-    if [[ "$vendor_id" = "AuthenticAMD" ]];then
-    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet amd_iommu=on iommu=pt/' /etc/default/grub
-    else
-    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt/' /etc/default/grub
-    fi
-    sudo update-grub >/dev/null 2>/dev/null
-fi
-
-echo -e "\nvfio\nvfio_iommu_typel\nvfio_pci\nvfio_virqfd\n" | sudo tee -a /etc/modules >/dev/null
-echo "options vfio_iommu_typel allow_unsafe_interrupts=1" | sudo tee /etc/modprobe.d/iommu_unsafe_interrupts.conf >/dev/null
-echo "options kvm ignore_msrs=1" | sudo tee /etc/modprobe.d/kvm_msrs.conf >/dev/null
-echo "blacklist nouveau" | sudo tee -a /etc/modprobe.d/blacklist.conf >/dev/null
-sudo update-initramfs -u >/dev/null 2>/dev/null
-
-com_version="19.3"
-version="580.105.06"
-if [[ ! "$(sudo dkms status | grep nvidia/$version)" ]]; then
-    echo "[~] Fetching Drivers"
-    # https://github.com/wvthoog/proxmox-vgpu-installer/blob/main/proxmox-installer.sh
-    # megadl https://mega.nz/file/JjtyXRiC#cTIIvOIxu8vf-RdhaJMGZAwSgYmqcVEKNNnRRJTwDFI >/dev/null 2>/dev/null
-    # https://www.reddit.com/r/Proxmox/comments/1b9ssk8/anyone_willing_to_share_nvidia_enterprise_drivers/
-    wget https://alist.homelabproject.cc/p/foxipan/vGPU/$com_version/NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run -q >/dev/null
-    chmod +x NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run
-    sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run --dkms -m=kernel -s >/dev/null 2>/dev/null
-    sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpud.service
-    sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpu-mgr.service
-    sudo systemctl daemon-reload
-    sudo sed -i 's/cpuset.h>/cpuset.h>\n#include "\/lib\/vgpu_unlock\/vgpu_unlock_hooks.c"/' /usr/src/nvidia-$version/nvidia/os-interface.c
-    echo "ldflags-y += -T /lib/vgpu_unlock/kern.ld" | sudo tee -a /usr/src/nvidia-$version/nvidia/nvidia.Kbuild >/dev/null
-    echo "[~] Building driver"
-    sudo dkms remove -m nvidia -v $version --all >/dev/null 2>/dev/null
-    sudo dkms install -m nvidia -v $version >/dev/null 2>/dev/null
-fi
 
 # Proxmox installation
 ## Hostname management
@@ -404,12 +358,13 @@ sudo debconf-set-selections <<< "postfix postfix/main_mailer_type string 'Satell
 sudo apt-get install postfix -yq > /dev/null
 
 ## Set step 2 on run after reboot
-wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/step2.sh -q >/dev/null
+wget https://raw.githubusercontent.com$repository/$branch/sub_scripts/step2.sh -q >/dev/null
 chmod +x step2.sh
 sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
 echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin $(whoami) --noclear %I \\\$TERM" | sudo tee /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf >/dev/null
 options="--start $start --branch $branch --repository $repository"
 if [[ $nologs ]];then options="$options -nl";fi
+if [[ $virtu ]];then options="$options -v";fi
 echo "$artifacts/step2.sh $options" >> ~/.bash_profile
 if [[ ! "$(grep -qE 'export TERM=xterm' ~/.bash_profile)" ]]; then echo 'export TERM=xterm' >> ~/.bash_profile; fi
 if [[ ! "$(grep -qE 'export TERM=xterm' ~/.profile)" ]]; then echo 'export TERM=xterm' >> ~/.profile; fi
