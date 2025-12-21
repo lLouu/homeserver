@@ -216,7 +216,7 @@ lines=(
 )
 
 for line in "${lines[@]}"; do
-   if [[ ! "$(grep -qxF "$line" $file)" ]]; then
+   if [[ ! "$(sudo grep "$line" /etc/pve/user.cfg)" ]]; then
       echo "$line" | sudo tee -a /etc/pve/user.cfg > /dev/null
    fi
 done
