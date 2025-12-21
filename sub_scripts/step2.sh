@@ -213,7 +213,7 @@ echo "token:terraform@pve!$TOKEN_ID:0:0:extended terraform token:" | sudo tee -a
 lines=(
   "group:TerraformProviders:terraform@pve:Terraform Providers:"
   "role:terraformDataProvider:Datastore.AllocateSpace,Datastore.AllocateTemplate,Datastore.Audit:"
-  "role:terraformVMProvider:Pool.Allocate,VM.Allocate,VM.Audit,VM.Clone,VM.Config.CDROM,VM.Config.Cloudinit,VM.Config.CPU,VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,VM.Migrate,VM.PowerMgmt,SDN.Use:"
+  "role:terraformVMProvider:Pool.Allocate,Pool.Audit,VM.Allocate,VM.Audit,VM.Clone,VM.Config.CDROM,VM.Config.Cloudinit,VM.Config.CPU,VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,VM.Migrate,VM.PowerMgmt,SDN.Use:"
   "role:terraformSysProvider:Sys.Audit,Sys.Console,Sys.Modify:"
   "acl:1:/:@TerraformProviders:terraformDataProvider"
   "acl:1:/:@TerraformProviders:terraformVMProvider"
