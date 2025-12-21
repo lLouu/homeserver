@@ -354,8 +354,11 @@ if [[ ! -f /home/ansible/.vgpu_unlocked ]]; then
 
     echo "[~] Fetching Drivers"
     # https://github.com/wvthoog/proxmox-vgpu-installer/blob/main/proxmox-installer.sh
-    version="550.54.10"
-    megadl https://mega.nz/file/JjtyXRiC#cTIIvOIxu8vf-RdhaJMGZAwSgYmqcVEKNNnRRJTwDFI >/dev/null 2>/dev/null
+    # megadl https://mega.nz/file/JjtyXRiC#cTIIvOIxu8vf-RdhaJMGZAwSgYmqcVEKNNnRRJTwDFI >/dev/null 2>/dev/null
+    # https://www.reddit.com/r/Proxmox/comments/1b9ssk8/anyone_willing_to_share_nvidia_enterprise_drivers/
+    com_version="19.3"
+    version="580.105.06"
+    wget https://alist.homelabproject.cc/p/foxipan/vGPU/$com_version/NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run
     chmod +x NVIDIA-Linux-x86_64-$version-vgpu-kvm.run
     sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm.run --dkms -m=kernel -s >/dev/null 2>/dev/null
     sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpud.service
@@ -413,5 +416,5 @@ if [[ ! "$(grep -qE 'export TERM=xterm' ~/.profile)" ]]; then echo 'export TERM=
 ## Reboot
 if [[ -f "/etc/sudoers.d/tmp" ]];then sudo rm /etc/sudoers.d/tmp; fi
 if [[ -f "/etc/network/interfaces.new" ]];then sudo rm /etc/network/interfaces.new; fi
-if [[ ! "$wait" ]]; then sudo systemctl reboot; fi
+if [[ ! "$wait" ]]; then sudo systemctl reboot; else echo "[?] Process will continue after manual reboot"; fi
 
