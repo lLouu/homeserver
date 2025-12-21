@@ -102,6 +102,7 @@ if [[ $check ]];then
     chmod +x install.sh
     options="--repository $repository --branch $branch -nc"
     if [[ $nologs ]]; then options="$options -nl"; fi
+    if [[ $wait ]]; then options="$options -w"; fi
     ./install.sh $options $POSITIONAL_ARGS
     exit
 fi
@@ -155,7 +156,7 @@ echo ""
 
 # Manage data 
 echo "[~] Mounting drives"
-sudo apt-get install pve-headers bcachefs-tools bcachefs-kernel-dkms snapraid mergerfs -yq > /dev/null
+sudo apt-get install pve-headers linux-headers-$(uname -r) bcachefs-tools bcachefs-kernel-dkms snapraid mergerfs -yq > /dev/null
 
 # Mount disks
 echo "[*] Please ensure to have done your partitionning before the script execution. CTRL+C if that has not be done yet"
@@ -193,7 +194,7 @@ sudo update-grub >/dev/null 2>/dev/null
 ## vram
 for vram_drive in ${swapDrives[@]};do
    sudo mkswap /dev/$vram_drive >/dev/null 2>/dev/null
-   if [[ ! "$(grep -qE \"/dev/$vram_drive none swap sw,pri=10 0 0\" /etc/fstab)" ]]; then
+   if [[ ! "$(grep "/dev/$vram_drive none swap sw,pri=10 0 0" /etc/fstab)" ]]; then
       echo "/dev/$vram_drive none swap sw,pri=10 0 0" | sudo tee -a /etc/fstab > /dev/null
    fi
 done
@@ -206,7 +207,6 @@ sudo apt-get install ./deb/package.deb -yq > /dev/null
 sudo systemctl enable --now nohang-desktop.service 2>/dev/null
 cd ..
 sudo rm -R nohang
-sudo mount -a 2>/dev/null
 
 # Main storage
 creating="1"
@@ -268,7 +268,7 @@ while [[ "$creating" ]];do
         uuid="$(sudo bcachefs format $options | grep 'External UUID' | awk '{print($3)}')"
         if [[ ! "$uuid" ]]; then echo "[!] Error creating drive. One of the partition seems to be used elsewhere"; else
             sudo mkdir -p /mnt/.tieredDrive$id
-            if [[ ! "$(grep -qE \"UUID=$uuid /mnt/.tieredDrive$id bcachefs defaults 0 0\" /etc/fstab)" ]]; then
+            if [[ ! "$(grep "UUID=$uuid /mnt/.tieredDrive$id bcachefs defaults 0 0" /etc/fstab)" ]]; then
                 echo "UUID=$uuid /mnt/.tieredDrive$id bcachefs defaults 0 0" | sudo tee -a /etc/fstab > /dev/null
             fi
         fi
@@ -307,7 +307,7 @@ done
 ## Merge with mergerfs
 sudo mkdir -p /mnt/content
 options="fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0"
-if [[ ! "$(grep -qE \"/mnt/.tieredDrive\* /mnt/content $options\" /etc/fstab)" ]]; then
+if [[ ! "$(grep "/mnt/.tieredDrive* /mnt/content $options" /etc/fstab)" ]]; then
     echo "/mnt/.tieredDrive* /mnt/content $options" | sudo tee -a /etc/fstab > /dev/null
 fi
 
