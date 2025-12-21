@@ -136,6 +136,7 @@ if [[ ! "$(sudo dkms status | grep nvidia/$version)" ]]; then
     sudo dkms install -m nvidia -v $version >/dev/null 2>/dev/null
 fi
 
+if [[ ! "$virtu" ]]; then
 ## Create network bridges and network configuration
 WAN=$(cat /etc/network/interfaces | grep 'dhcp' | awk '{print($2)}')
 sudo mv /etc/network/interfaces /etc/network/interfaces.old
@@ -193,6 +194,7 @@ chmod 644 interfaces
 sudo chown root:root interfaces
 sudo mv interfaces /etc/network/
 sudo systemctl restart networking
+fi
 
 # Setup init terraform
 ## Generate hash & Token
@@ -211,7 +213,7 @@ echo "token:terraform@pve!$TOKEN_ID:0:0:extended terraform token:" | sudo tee -a
 lines=(
   "group:TerraformProviders:terraform@pve:Terraform Providers:"
   "role:terraformDataProvider:Datastore.AllocateSpace,Datastore.AllocateTemplate,Datastore.Audit:"
-  "role:terraformVMProvider:Pool.Allocate,VM.Allocate,VM.Audit,VM.Clone,VM.Config.CDROM,VM.Config.Cloudinit,VM.Config.CPU,VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,VM.Migrate,VM.Monitor,VM.PowerMgmt,SDN.Use:"
+  "role:terraformVMProvider:Pool.Allocate,VM.Allocate,VM.Audit,VM.Clone,VM.Config.CDROM,VM.Config.Cloudinit,VM.Config.CPU,VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,VM.Migrate,VM.PowerMgmt,SDN.Use:"
   "role:terraformSysProvider:Sys.Audit,Sys.Console,Sys.Modify:"
   "acl:1:/:@TerraformProviders:terraformDataProvider"
   "acl:1:/:@TerraformProviders:terraformVMProvider"

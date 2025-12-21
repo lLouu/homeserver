@@ -109,6 +109,7 @@ if [[ $check ]];then
     options="--repository $repository --branch $branch -nc"
     if [[ $nologs ]]; then options="$options -nl"; fi
     if [[ $wait ]]; then options="$options -w"; fi
+    if [[ $virtu ]]; then options="$options -v"; fi
     ./install.sh $options $POSITIONAL_ARGS
     exit
 fi
@@ -314,7 +315,7 @@ sudo update-initramfs -u > /dev/null
 ## zram
 sudo apt-get install zram-tools -yq > /dev/null
 echo -e "ALGO=lz4\nPERCENT=60\nPRIORITY=100" | sudo tee -a /etc/default/zramswap > /dev/null
-sudo service zramswap reload
+sudo service zramswap restart
 ## zswap
 sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold/' /etc/default/grub
 sudo update-grub >/dev/null 2>/dev/null
