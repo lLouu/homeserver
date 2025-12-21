@@ -41,6 +41,7 @@ trap stop INT
 branch="main"
 check="1"
 nologs=""
+wait=""
 repository="/llouu/homeserver"
 
 POSITIONAL_ARGS=()
@@ -66,6 +67,10 @@ while [[ $# -gt 0 ]]; do
       nologs="1"
       shift
       ;;
+    -w|--wait|--no-reboot)
+      wait="1"
+      shift
+      ;;
     -h|--help)
       echo "[~] Github options"
       echo "[*] -r | --repository <repo> (default: /llouu/homeserver) - Use this repository for reference (eg. use of a fork)"
@@ -73,6 +78,7 @@ while [[ $# -gt 0 ]]; do
       echo "[*] -nc | --no-check - Disable the check of the branch on github"
       echo ""
       echo "[~] Misc options"
+      echo "[*] -w | --wait | --no-reboot - Disable auto-reboot after script execution"
       echo "[*] -nl | --no-log - Disable logging"
       echo "[*] -h | --help - Get help"
       stop
@@ -157,18 +163,18 @@ echo "[#] Here are all partitions :"
 lsblk -o NAME,SIZE
 # Swap
 inputed_part="1"
-swapDrives=""
+swapDrives=()
+echo "[*] Select swap partition (empty to stop) :"
 while [[ "$inputed_part" ]];do
     part=""
     while [[ $inputed_part && ! $part ]];do
-        echo "[*] Select swap partition (empty to stop) :"
         read -p "[>] " inputed_part
         part="$(ls /dev | grep ^$inputed_part$)"
         if [[ $inputed_part && ! $part ]];then
             echo "[!] Invalid partition"
         fi
     done
-    swapDrives="$part $swapDrives"
+    swapDrives+=($part)
 done
 
 # Swap optimisation
@@ -185,9 +191,9 @@ sudo service zramswap reload
 sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold/' /etc/default/grub
 sudo update-grub >/dev/null 2>/dev/null
 ## vram
-for vram_drive in "$swapDrives";do
+for vram_drive in ${swapDrives[@]};do
    sudo mkswap /dev/$vram_drive >/dev/null 2>/dev/null
-   if ! grep -qE "/dev/$vram_drive none swap sw,pri=10 0 0" /etc/fstab; then
+   if [[ ! "$(grep -qE \"/dev/$vram_drive none swap sw,pri=10 0 0\" /etc/fstab)" ]]; then
       echo "/dev/$vram_drive none swap sw,pri=10 0 0" | sudo tee -a /etc/fstab > /dev/null
    fi
 done
@@ -204,7 +210,7 @@ sudo mount -a 2>/dev/null
 
 # Main storage
 creating="1"
-id="1"
+id=$(("$(ls -la /mnt | grep .tieredDrive | tail -n1 | awk '{print($9)}' | sed 's/.tieredDrive//')"+1))
 while [[ "$creating" ]];do
     echo "[+] Creating a tiered drive"
     inputed_part="1"
@@ -260,8 +266,12 @@ while [[ "$creating" ]];do
         fi
         options="$options --metadata_target=/dev/$meta"
         uuid="$(sudo bcachefs format $options | grep 'External UUID' | awk '{print($3)}')"
-        sudo mkdir -p /mnt/.tieredDrive$id
-        echo "UUID=$uuid /mnt/.tieredDrive$id bcachefs defaults 0 0" | sudo tee -a /etc/fstab > /dev/null
+        if [[ ! "$uuid" ]]; then echo "[!] Error creating drive. One of the partition seems to be used elsewhere"; else
+            sudo mkdir -p /mnt/.tieredDrive$id
+            if [[ ! "$(grep -qE \"UUID=$uuid /mnt/.tieredDrive$id bcachefs defaults 0 0\" /etc/fstab)" ]]; then
+                echo "UUID=$uuid /mnt/.tieredDrive$id bcachefs defaults 0 0" | sudo tee -a /etc/fstab > /dev/null
+            fi
+        fi
     fi
 
     read -p "[?] Continue Creating tiered drives ? (empty to stop) :" creating
@@ -271,31 +281,35 @@ sudo mount -a 2>/dev/null
 
 ## Manage Snap raid & Parity
 inputed_part="1"
-parityDrives=""
+parityDrives=()
+echo "[*] Select parity partition (empty to stop) :"
 while [[ "$inputed_part" ]];do
     part=""
     while [[ $inputed_part && ! $part ]];do
-        echo "[*] Select parity partition (empty to stop) :"
         read -p "[>] " inputed_part
         part="$(ls /dev | grep ^$inputed_part$)"
         if [[ $inputed_part && ! $part ]];then
             echo "[!] Invalid partition"
         fi
     done
-    parityDrives="$part $parityDrives"
+    parityDrives+=($part)
 done
 
 sudo touch /etc/snapraid.conf
-for drive in "$parityDrives"; do echo "parity /dev/$drive" | sudo tee -a /etc/snapraid.conf >/dev/null; done
+for drive in ${parityDrives[@]}; do echo "parity /dev/$drive" | sudo tee -a /etc/snapraid.conf >/dev/null; done
 for data in "$(ls -a /mnt | grep .tieredDrive)"; do
+    sudo mkdir -p /mnt/$data
     sudo touch /mnt/$data/snapraid.content
     echo "content /mnt/$data/snapraid.content" | sudo tee -a /etc/snapraid.conf >/dev/null
     echo "data $data /mnt/$data" | sudo tee -a /etc/snapraid.conf >/dev/null
 done
 
 ## Merge with mergerfs
+sudo mkdir -p /mnt/content
 options="fuse.mergerfs defaults,allow_other,use_ino,cache.files=off,moveonenospc=true,category.create=mfs 0 0"
-echo "/mnt/.tieredDrive* /mnt/content $options" | sudo tee -a /etc/fstab > /dev/null
+if [[ ! "$(grep -qE \"/mnt/.tieredDrive\* /mnt/content $options\" /etc/fstab)" ]]; then
+    echo "/mnt/.tieredDrive* /mnt/content $options" | sudo tee -a /etc/fstab > /dev/null
+fi
 
 # Manage snapraid routine
 wget https://raw.githubusercontent.com/llouu/homeserver/$branch/sub_scripts/storage_manager.sh -q >/dev/null
@@ -392,12 +406,12 @@ echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin $(whoami) --
 options="--start $start --branch $branch --repository $repository"
 if [[ $nologs ]];then options="$options -nl";fi
 echo "$artifacts/step2.sh $options" >> ~/.bash_profile
-if [[ ! "$(grep -qE 'export TERM=xterm')" ~/.bash_profile ]]; then echo 'export TERM=xterm' >> ~/.bash_profile; fi
-if [[ ! "$(grep -qE 'export TERM=xterm')" ~/.profile ]]; then echo 'export TERM=xterm' >> ~/.profile; fi
+if [[ ! "$(grep -qE 'export TERM=xterm' ~/.bash_profile)" ]]; then echo 'export TERM=xterm' >> ~/.bash_profile; fi
+if [[ ! "$(grep -qE 'export TERM=xterm' ~/.profile)" ]]; then echo 'export TERM=xterm' >> ~/.profile; fi
 
 
 ## Reboot
 if [[ -f "/etc/sudoers.d/tmp" ]];then sudo rm /etc/sudoers.d/tmp; fi
 if [[ -f "/etc/network/interfaces.new" ]];then sudo rm /etc/network/interfaces.new; fi
-sudo systemctl reboot
+if [[ ! "$wait" ]]; then sudo systemctl reboot; fi
 
