@@ -84,7 +84,12 @@ sudo mv /etc/apt/sources.list.d/pve-enterprise.sources /etc/apt/sources.list.d/p
 # Unlock vGPU
 echo "[~] Starting vGPU unlock"
 echo "[~] Downloading dependencies"
-sudo apt-get install python3 python3-pip dkms git jq mdevctl -yq > /dev/null
+sudo apt-get install python3 python3-pip dkms git jq build-essential mdevctl -yq > /dev/null
+if [[ ! -d $HOME/.cargo ]]; then
+   wget https://sh.rustup.rs -O rustup-init.sh -q >/dev/null
+   chmod +x rustup-init.sh
+   ./rustup-init.sh -y >/dev/null 2>/dev/null
+fi
 for py in $(ls /usr/lib/ | grep python3.);do
     if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
         sudo mv /usr/lib/$py/EXTERNALLY-MANAGED /usr/lib/$py/EXTERNALLY-MANAGED.old
@@ -93,10 +98,19 @@ done
 pip3 install frida -q >/dev/null 2>/dev/null
 
 if [[ ! -d /lib/vgpu_unlock ]]; then
-    echo "[~] Fetching script"
+    echo "[~] Fetching vgpu script"
     git clone https://github.com/DualCoder/vgpu_unlock --quiet >/dev/null 2>/dev/null
     chmod -R +x vgpu_unlock
     sudo mv vgpu_unlock /lib/
+fi
+
+if [[ ! -d /lib/vgpu_unlock_rs ]]; then
+    echo "[~] Fetching vgpu rust script"
+    git clone https://github.com/mbilker/vgpu_unlock-rs --quiet >/dev/null 2>/dev/null
+    sudo mv vgpu_unlock-rs /lib/
+    cd /lib/vgpu_unlock-rs
+    sudo $HOME/.cargo/bin/cargo build --release
+    cd $artifacts
 fi
 
 if [[ ! "$(grep GRUB_CMDLINE_LINUX_DEFAULT=.*iommu=on.*iommu=pt /etc/default/grub)"  ]]; then
@@ -126,8 +140,10 @@ if [[ ! "$(sudo dkms status | grep nvidia/$version)" ]]; then
     wget https://alist.homelabproject.cc/p/foxipan/vGPU/$com_version/NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run -q >/dev/null
     chmod +x NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run
     sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run --dkms -m=kernel -s >/dev/null 2>/dev/null
-    sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpud.service
-    sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpu-mgr.service
+   #  sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpud.service
+   #  sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpu-mgr.service
+    mkdir -p /etc/systemd/system/nvidia-vgpud.service.d /etc/systemd/system/nvidia-vgpu-mgr.service.d
+    echo -e "[Service]\nEnvironment=LD_PRELOAD=/lib/vgpu_unlock_rs/target/release/libvgpu_unlock_rs.so" | sudo tee /etc/systemd/system/nvidia-vgpud.service.d/vgpu_unlock.conf | sudo tee /etc/systemd/system/nvidia-vgpu-mgr.service.d/vgpu_unlock.conf >/dev/null
     sudo systemctl daemon-reload
     sudo sed -i 's/cpuset.h>/cpuset.h>\n#include "\/lib\/vgpu_unlock\/vgpu_unlock_hooks.c"/' /usr/src/nvidia-$version/nvidia/os-interface.c
     echo "ldflags-y += -T /lib/vgpu_unlock/kern.ld" | sudo tee -a /usr/src/nvidia-$version/nvidia/nvidia.Kbuild >/dev/null
