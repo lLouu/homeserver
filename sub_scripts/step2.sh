@@ -89,7 +89,7 @@ if [[ ! -d $HOME/.cargo ]]; then
    wget https://sh.rustup.rs -O rustup-init.sh -q >/dev/null
    chmod +x rustup-init.sh
    ./rustup-init.sh -y >/dev/null 2>/dev/null
-   $HOME/.cargo/bin/rustup default stable
+   $HOME/.cargo/bin/rustup default stable >/dev/null 2>/dev/null
 fi
 for py in $(ls /usr/lib/ | grep python3.);do
     if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
@@ -110,7 +110,7 @@ if [[ ! -d /lib/vgpu_unlock_rs ]]; then
     git clone https://github.com/mbilker/vgpu_unlock-rs --quiet >/dev/null 2>/dev/null
     sudo mv vgpu_unlock-rs /lib/
     cd /lib/vgpu_unlock-rs
-    $HOME/.cargo/bin/cargo build --release
+    $HOME/.cargo/bin/cargo build --release >/dev/null 2>/dev/null
     cd $artifacts
 fi
 
@@ -330,8 +330,13 @@ sed -i "s/===ID===/terraform@pve!$TOKEN_ID/" proxmox.tfvars.json
 sed -i "s/===SECRET===/$TOKEN_SECRET/" proxmox.tfvars.json
 
 ## Create Ansible rsa id
-ssh-keygen -f ansible -N "" -t rsa -b 8192 -q
-sed -i "s/$(whoami)/ansible/" ansible.pub
+if [[ ! "$virtu" ]]; then
+   ssh-keygen -f ansible -N "" -t rsa -b 8192 -q
+   sed -i "s/$(whoami)/ansible/" ansible.pub
+else
+   wget https://raw.githubusercontent.com$repository/$branch/virtu/ansible -q >/dev/null
+   wget https://raw.githubusercontent.com$repository/$branch/virtu/ansible.pub -q >/dev/null
+fi
 ROOT_PWD=$(openssl rand -base64 64)
 echo $ROOT_PWD | sudo tee /root/.virt_roots.pwd >/dev/null && sudo chmod 400 /root/.virt_roots.pwd && sudo chown root:root /root/.virt_roots.pwd
 
