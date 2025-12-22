@@ -9,15 +9,17 @@ resource "proxmox_vm_qemu" "pfsense" {
 
   # Ressources
   memory      = var.pfsense.ram
-  sockets     = var.pfsense.sockets
-  cores       = var.pfsense.cores
+  cpu {
+    sockets     = var.pfsense.sockets
+    cores       = var.pfsense.cores
+  }
 
   # Behaviour
-  boot        = "order=scsi0"
-  scsihw      = "virtio-scsi-pci"
-  agent       = 1
-  onboot      = true
-  vm_state    = "running"
+  boot                = "order=scsi0"
+  scsihw              = "virtio-scsi-pci"
+  agent               = 1
+  start_at_node_boot  = true
+  vm_state            = "running"
 
   # Storage
   dynamic "disk" {

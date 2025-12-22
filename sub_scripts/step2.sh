@@ -89,6 +89,7 @@ if [[ ! -d $HOME/.cargo ]]; then
    wget https://sh.rustup.rs -O rustup-init.sh -q >/dev/null
    chmod +x rustup-init.sh
    ./rustup-init.sh -y >/dev/null 2>/dev/null
+   $HOME/.cargo/bin/rustup default stable
 fi
 for py in $(ls /usr/lib/ | grep python3.);do
     if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
@@ -109,7 +110,7 @@ if [[ ! -d /lib/vgpu_unlock_rs ]]; then
     git clone https://github.com/mbilker/vgpu_unlock-rs --quiet >/dev/null 2>/dev/null
     sudo mv vgpu_unlock-rs /lib/
     cd /lib/vgpu_unlock-rs
-    sudo $HOME/.cargo/bin/cargo build --release
+    $HOME/.cargo/bin/cargo build --release
     cd $artifacts
 fi
 
@@ -142,7 +143,7 @@ if [[ ! "$(sudo dkms status | grep nvidia/$version)" ]]; then
     sudo ./NVIDIA-Linux-x86_64-$version-vgpu-kvm-patch.run --dkms -m=kernel -s >/dev/null 2>/dev/null
    #  sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpud.service
    #  sudo sed -i 's/ExecStart=/ExecStart=\/lib\/vgpu_unlock\/vgpu_unlock /' /lib/systemd/system/nvidia-vgpu-mgr.service
-    mkdir -p /etc/systemd/system/nvidia-vgpud.service.d /etc/systemd/system/nvidia-vgpu-mgr.service.d
+    sudo mkdir -p /etc/systemd/system/nvidia-vgpud.service.d /etc/systemd/system/nvidia-vgpu-mgr.service.d
     echo -e "[Service]\nEnvironment=LD_PRELOAD=/lib/vgpu_unlock_rs/target/release/libvgpu_unlock_rs.so" | sudo tee /etc/systemd/system/nvidia-vgpud.service.d/vgpu_unlock.conf | sudo tee /etc/systemd/system/nvidia-vgpu-mgr.service.d/vgpu_unlock.conf >/dev/null
     sudo systemctl daemon-reload
     sudo sed -i 's/cpuset.h>/cpuset.h>\n#include "\/lib\/vgpu_unlock\/vgpu_unlock_hooks.c"/' /usr/src/nvidia-$version/nvidia/os-interface.c

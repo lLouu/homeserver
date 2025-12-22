@@ -11,15 +11,17 @@ resource "proxmox_vm_qemu" "instances" {
 
   # Ressources
   memory      = var.vms[count.index].ram
-  sockets     = var.vms[count.index].sockets
-  cores       = var.vms[count.index].cores
+  cpu {
+    sockets     = var.vms[count.index].sockets
+    cores       = var.vms[count.index].cores
+  }
 
   # Behaviour
-  boot        = "order=scsi0"
-  scsihw      = "virtio-scsi-pci"
-  agent       = 1
-  onboot      = true
-  vm_state    = "running"
+  boot                = "order=scsi0"
+  scsihw              = "virtio-scsi-pci"
+  agent               = 1
+  start_at_node_boot  = true
+  vm_state            = "running"
 
   # Storage
   dynamic "disk" {
