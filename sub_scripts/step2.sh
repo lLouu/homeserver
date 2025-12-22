@@ -336,6 +336,7 @@ if [[ ! "$virtu" ]]; then
 else
    wget https://raw.githubusercontent.com$repository/$branch/virtu/ansible -q >/dev/null
    wget https://raw.githubusercontent.com$repository/$branch/virtu/ansible.pub -q >/dev/null
+   chmod 600 ansible
 fi
 ROOT_PWD=$(openssl rand -base64 64)
 echo $ROOT_PWD | sudo tee /root/.virt_roots.pwd >/dev/null && sudo chmod 400 /root/.virt_roots.pwd && sudo chown root:root /root/.virt_roots.pwd
