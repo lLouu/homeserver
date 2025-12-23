@@ -43,6 +43,7 @@ check="1"
 nologs=""
 wait=""
 virtu=""
+nounlock=""
 repository="/llouu/homeserver"
 
 POSITIONAL_ARGS=()
@@ -68,6 +69,10 @@ while [[ $# -gt 0 ]]; do
       nologs="1"
       shift
       ;;
+    -nu|--no-unlock|--no-vgpu-unlock)
+      nounlock="1"
+      shift
+      ;;
     -w|--wait|--no-reboot)
       wait="1"
       shift
@@ -84,6 +89,7 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "[~] Misc options"
       echo "[*] -w | --wait | --no-reboot - Disable auto-reboot after script execution"
+      echo "[*] -nu | --no-unlock | --no-vgpu-unlock - Disable vgpu_unlock installation"
       echo "[*] -nl | --no-log - Disable logging"
       echo "[*] -v | --virtu - VM mode (no proxmox configuration, expecting VM in local network)"
       echo "[*] -h | --help - Get help"
@@ -110,6 +116,7 @@ if [[ $check ]];then
     if [[ $nologs ]]; then options="$options -nl"; fi
     if [[ $wait ]]; then options="$options -w"; fi
     if [[ $virtu ]]; then options="$options -v"; fi
+    if [[ $nounlock ]]; then options="$options -nu"; fi
     ./install.sh $options $POSITIONAL_ARGS
     exit
 fi
@@ -365,6 +372,7 @@ sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
 echo -e "[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin $(whoami) --noclear %I \\\$TERM" | sudo tee /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf >/dev/null
 options="--start $start --branch $branch --repository $repository"
 if [[ $nologs ]];then options="$options -nl";fi
+if [[ $nounlock ]];then options="$options -nu";fi
 if [[ $virtu ]];then options="$options -v";fi
 echo "$artifacts/step2.sh $options" >> ~/.bash_profile
 if [[ ! "$(grep -qE 'export TERM=xterm' ~/.bash_profile)" ]]; then echo 'export TERM=xterm' >> ~/.bash_profile; fi

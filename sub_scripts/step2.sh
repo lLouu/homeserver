@@ -24,6 +24,7 @@ printf "Defaults\ttimestamp_timeout=-1\n" | sudo tee /etc/sudoers.d/tmp > /dev/n
 branch="main"
 start=$(date +%s)
 nologs=""
+nounlock=""
 virtu=""
 repository="/llouu/homeserver"
 
@@ -49,6 +50,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -nl|--no-log)
       nologs="1"
+      shift
+      ;;
+    -nu|--no-unlock|--no-vgpu-unlock)
+      nounlock="1"
       shift
       ;;
     -v|--virtu)
@@ -82,20 +87,22 @@ echo "[+] Debian kernel Removed"
 sudo mv /etc/apt/sources.list.d/pve-enterprise.sources /etc/apt/sources.list.d/pve-enterprise.sources.disabled
 
 # Unlock vGPU
+sudo apt-get install python3 python3-pip -yq > /dev/null
+for py in $(ls /usr/lib/ | grep python3.);do
+    if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
+        sudo mv /usr/lib/$py/EXTERNALLY-MANAGED /usr/lib/$py/EXTERNALLY-MANAGED.old
+    fi
+done
+if [[ ! "$nounlock" ]];then
 echo "[~] Starting vGPU unlock"
 echo "[~] Downloading dependencies"
-sudo apt-get install python3 python3-pip dkms git jq build-essential mdevctl -yq > /dev/null
+sudo apt-get install dkms git jq build-essential mdevctl -yq > /dev/null
 if [[ ! -d $HOME/.cargo ]]; then
    wget https://sh.rustup.rs -O rustup-init.sh -q >/dev/null
    chmod +x rustup-init.sh
    ./rustup-init.sh -y >/dev/null 2>/dev/null
    $HOME/.cargo/bin/rustup default stable >/dev/null 2>/dev/null
 fi
-for py in $(ls /usr/lib/ | grep python3.);do
-    if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
-        sudo mv /usr/lib/$py/EXTERNALLY-MANAGED /usr/lib/$py/EXTERNALLY-MANAGED.old
-    fi
-done
 pip3 install frida -q >/dev/null 2>/dev/null
 
 if [[ ! -d /lib/vgpu_unlock ]]; then
@@ -151,6 +158,7 @@ if [[ ! "$(sudo dkms status | grep nvidia/$version)" ]]; then
     echo "[~] Building driver"
     sudo dkms remove -m nvidia -v $version --all >/dev/null 2>/dev/null
     sudo dkms install -m nvidia -v $version >/dev/null 2>/dev/null
+fi
 fi
 
 if [[ ! "$virtu" ]]; then

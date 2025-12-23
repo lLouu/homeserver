@@ -41,7 +41,7 @@ pipeline {
 
          stage('Packer Builds') {
             steps {
-               withCredentials([string(credentialsId: 'root-password', variable: 'ROOT_PWD')]) {
+               withCredentials([string(credentialsId: 'root-password', variable: 'ROOT_PWD'), file(credentialsId: 'proxmox-tfvars', variable: 'PROXMOX_TFVARS')]) {
                      script {
                      def packerDir = "work"
                      def executedFile = "${packerDir}/.executed_packer"
@@ -57,7 +57,7 @@ pipeline {
                                  env.WORKING_FILE = file
                                  sh '''
                                     packer init $WORKING_FILE
-                                    packer build -var-file="work/proxmox.tfvars.json" -var "ansible_pub=$ANSIBLE_PUB" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
+                                    packer build -var-file=$PROXMOX_TFVARS -var "ansible_pub=$ANSIBLE_PUB" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
                                     echo ${base} >> ${executedFile}
                                  '''
 
