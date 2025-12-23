@@ -34,6 +34,7 @@ source "proxmox-iso" "alpine-ansible-ready" {
     proxmox_url = "${var.proxmox.api.url}"
     username    = "${var.proxmox.api.token_id}"
     token       = "${var.proxmox.api.token_secret}"
+    insecure_skip_tls_verify = true
 
     # VM General Settings
     node                 = var.proxmox.node
