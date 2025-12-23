@@ -1,7 +1,7 @@
 # Allow ansible to run only specific commands
 ansible ALL=(root) NOPASSWD: \
     /sbin/apk update, \
-    /sbin/apk add jenkins openjdk21 openjdk21-jre packer terraform python3 py3-pip curl jq git, \
+    /sbin/apk add jenkins openjdk21 openjdk21-jre packer terraform python3 py3-pip curl jq git base64, \
     /usr/bin/pip install ansible, \
     \
     /usr/bin/wget -O /etc/apk/keys/jenkins-ci.org.key https\://pkg.jenkins.io/*-stable/jenkins-ci.org.key, \
