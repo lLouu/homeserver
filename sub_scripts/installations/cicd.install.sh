@@ -4,7 +4,7 @@ sudo /usr/bin/wget -O /etc/apk/keys/jenkins-ci.org.key https://pkg.jenkins.io/re
 if [[ ! "$(cat /etc/apk/repositories | grep http://dl-cdn.alpinelinux.org/alpine/v3.16/community)" ]]; then echo "http://dl-cdn.alpinelinux.org/alpine/v3.16/community" | sudo tee -a /etc/apk/repositories; fi
 if [[ ! "$(cat /etc/apk/repositories | grep https://pkg.jenkins.io/redhat-stable)" ]]; then echo "https://pkg.jenkins.io/redhat-stable" | sudo tee -a /etc/apk/repositories; fi
 sudo /sbin/apk update 
-sudo /sbin/apk add jenkins openjdk21 openjdk21-jre packer terraform python3 py3-pip curl jq git
+sudo /sbin/apk add jenkins openjdk21 openjdk21-jre packer terraform python3 py3-pip curl jq git base64
 for py in $(ls /usr/lib/ | grep python3.);do
     if [[ -f /usr/lib/$py/EXTERNALLY-MANAGED ]];then
         sudo /bin/mv /usr/lib/$py/EXTERNALLY-MANAGED /usr/lib/$py/EXTERNALLY-MANAGED.old
