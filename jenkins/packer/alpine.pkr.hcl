@@ -55,7 +55,7 @@ source "proxmox-iso" "alpine-ansible-ready" {
     # VM OS Settings
     boot_iso {
         type         = "scsi"
-        iso_file     = "local:iso/alpine-virt-3.21.2-aarch64.iso"
+        iso_file     = "local:iso/alpine-virt-3.22.1-x86_64.iso"
         unmount      = true
         iso_checksum = "42918974513750a6923393f3074c3bb226badfce4a0d0f35f90377fd789fda1f"
     }
