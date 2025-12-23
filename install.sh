@@ -332,7 +332,7 @@ git clone https://github.com/hakavlad/nohang.git --quiet >/dev/null 2>/dev/null 
 ./deb/build.sh >/dev/null 2>/dev/null
 sudo apt-get install ./deb/package.deb -yq > /dev/null
 sudo systemctl enable --now nohang-desktop.service 2>/dev/null
-cd ..
+cd $artifacts
 sudo rm -R nohang
 
 echo "[+] Mounting done"

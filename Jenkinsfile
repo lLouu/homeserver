@@ -57,7 +57,7 @@ pipeline {
                                  env.WORKING_FILE = file
                                  sh '''
                                     packer init $WORKING_FILE
-                                    packer build -var-file=$PROXMOX_TFVARS -var "ansible_pub=$ANSIBLE_PUB" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
+                                    packer build -var-file="$PROXMOX_TFVARS" -var "ansible_pub=$ANSIBLE_PUB" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
                                     echo ${base} >> ${executedFile}
                                  '''
 
