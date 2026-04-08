@@ -204,6 +204,20 @@ done
 sudo swapon -a 2>/dev/null
 
 # Main storage
+
+if [[ ! -f "/etc/systemd/system/bcachefs-custom-mount.service" ]]; then 
+    sudo tee /etc/systemd/system/bcachefs-custom-mount.service > /dev/null <<EOF
+[Unit]
+Description=Mount bcachefs devices
+After=systemd-udev-settle.service
+Wants=systemd-udev-settle.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EOF
+fi
+
 creating="1"
 id=$(("$(ls -la /mnt | grep .tieredDrive | tail -n1 | awk '{print($9)}' | sed 's/.tieredDrive//')"+1))
 while [[ "$creating" ]];do
@@ -263,8 +277,8 @@ while [[ "$creating" ]];do
         uuid="$(sudo bcachefs format $options | grep 'External UUID' | awk '{print($3)}')"
         if [[ ! "$uuid" ]]; then echo "[!] Error creating drive. One of the partition seems to be used elsewhere"; else
             sudo mkdir -p /mnt/.tieredDrive$id
-            if [[ ! "$(grep "UUID=$uuid /mnt/.tieredDrive$id bcachefs defaults 0 0" /etc/fstab)" ]]; then
-                echo "UUID=$uuid /mnt/.tieredDrive$id bcachefs defaults 0 0" | sudo tee -a /etc/fstab > /dev/null
+            if [[ ! "$(grep "ExecStart=/usr/sbin/bcachefs mount UUID=$uuid /mnt/.tieredDrive$id" /etc/systemd/system/bcachefs-custom-mount.service)" ]]; then
+                echo "ExecStart=/usr/sbin/bcachefs mount UUID=$uuid /mnt/.tieredDrive$id" | sudo tee -a /etc/systemd/system/bcachefs-custom-mount.service > /dev/null
             fi
         fi
     fi
