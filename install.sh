@@ -151,7 +151,7 @@ Signed-By: /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc
 EOF
 fi
 if [[ ! -f /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc || "$(sha512sum /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc | awk '{print($1)}')" != "97ae039fed3b22b65840c91e94aef20f0cac3698ef9e9aa4fce7417b2ace94618a87325ad628bd64dfbefc38d5412d1195b0fbb93875df3084b0637ac87a8345" ]]; then
-   sudo wget https://apt.bcachefs.org/apt.bcachefs.org.asc -q -O /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc >/dev/null -q >/dev/null
+   sudo wget https://web.archive.org/web/20260122081118if_/https://apt.bcachefs.org/apt.bcachefs.org.asc -q -O /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc >/dev/null -q >/dev/null
    if [[ "$(sha512sum /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc | awk '{print($1)}')" != "97ae039fed3b22b65840c91e94aef20f0cac3698ef9e9aa4fce7417b2ace94618a87325ad628bd64dfbefc38d5412d1195b0fbb93875df3084b0637ac87a8345" ]]; then
       sudo rm /etc/apt/trusted.gpg.d/apt.bcachefs.org.asc >/dev/null 2>/dev/null
       exit 1
