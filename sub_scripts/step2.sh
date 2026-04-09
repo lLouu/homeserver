@@ -163,7 +163,7 @@ fi
 
 if [[ ! "$virtu" ]]; then
 ## Create network bridges and network configuration
-WAN=$(cat /etc/network/interfaces | grep 'dhcp' | awk '{print($2)}')
+WAN=$(sudo cat /etc/network/interfaces | grep 'dhcp' | awk '{print($2)}')
 sudo mv /etc/network/interfaces /etc/network/interfaces.old
 cat > interfaces <<EOF
 # Localhost
