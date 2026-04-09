@@ -26,7 +26,7 @@ start=$(date +%s)
 nologs=""
 nounlock=""
 virtu=""
-wifi=""
+wlan=""
 repository="/llouu/homeserver"
 
 POSITIONAL_ARGS=()
@@ -207,7 +207,16 @@ iface vmbr5 inet static
     bridge_stp off
     bridge_fd 0
 EOF
-if [[ "$wifi" ]]; then 
+if [[ ! "$wlan" ]]; then 
+cat >> bridges <<EOF
+# WAN
+auto vmbr0
+iface vmbr0 inet dhcp
+    bridge_ports WAN
+    bridge_stp off
+    bridge_fd 0
+EOF
+else
 sudo apt-get install iptables -yq > /dev/null
 cat >> bridges <<EOF
 # WAN
@@ -221,15 +230,6 @@ iface vmbr0 inet static
     post-up echo 1 > /proc/sys/net/ipv4/ip_forward
     post-up iptables -t nat -A POSTROUTING -s '10.255.255.0/30' -o WAN -j MASQUERADE
     post-down iptables -t nat -D POSTROUTING -s '10.255.255.0/30' -o WAN -j MASQUERADE
-EOF
-else
-cat >> bridges <<EOF
-# WAN
-auto vmbr0
-iface vmbr0 inet dhcp
-    bridge_ports WAN
-    bridge_stp off
-    bridge_fd 0
 EOF
 fi
 sed -i "s/WAN/$WAN/" bridges
