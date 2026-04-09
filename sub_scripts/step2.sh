@@ -26,6 +26,7 @@ start=$(date +%s)
 nologs=""
 nounlock=""
 virtu=""
+wifi=""
 repository="/llouu/homeserver"
 
 POSITIONAL_ARGS=()
@@ -54,6 +55,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -nu|--no-unlock|--no-vgpu-unlock)
       nounlock="1"
+      shift
+      ;;
+    --wifi|--wlan)
+      wlan="1"
       shift
       ;;
     -v|--virtu)

@@ -44,6 +44,7 @@ nologs=""
 wait=""
 virtu=""
 nounlock=""
+wlan=""
 repository="/llouu/homeserver"
 
 POSITIONAL_ARGS=()
@@ -73,6 +74,10 @@ while [[ $# -gt 0 ]]; do
       nounlock="1"
       shift
       ;;
+    --wifi|--wlan)
+      wlan="1"
+      shift
+      ;;
     -w|--wait|--no-reboot)
       wait="1"
       shift
@@ -90,6 +95,7 @@ while [[ $# -gt 0 ]]; do
       echo "[~] Misc options"
       echo "[*] -w | --wait | --no-reboot - Disable auto-reboot after script execution"
       echo "[*] -nu | --no-unlock | --no-vgpu-unlock - Disable vgpu_unlock installation"
+      echo "[*] --wifi | --wlan - Enable proxmox natting for LAN over WiFi"
       echo "[*] -nl | --no-log - Disable logging"
       echo "[*] -v | --virtu - VM mode (no proxmox configuration, expecting VM in local network)"
       echo "[*] -h | --help - Get help"
@@ -117,6 +123,7 @@ if [[ $check ]];then
     if [[ $wait ]]; then options="$options -w"; fi
     if [[ $virtu ]]; then options="$options -v"; fi
     if [[ $nounlock ]]; then options="$options -nu"; fi
+    if [[ $wlan ]]; then options="$options --wlan"; fi
     ./install.sh $options $POSITIONAL_ARGS
     exit
 fi
@@ -388,6 +395,7 @@ options="--start $start --branch $branch --repository $repository"
 if [[ $nologs ]];then options="$options -nl";fi
 if [[ $nounlock ]];then options="$options -nu";fi
 if [[ $virtu ]];then options="$options -v";fi
+if [[ $wlan ]]; then options="$options --wlan"; fi
 echo "$artifacts/step2.sh $options" >> ~/.bash_profile
 if [[ ! "$(grep -qE 'export TERM=xterm' ~/.bash_profile)" ]]; then echo 'export TERM=xterm' >> ~/.bash_profile; fi
 if [[ ! "$(grep -qE 'export TERM=xterm' ~/.profile)" ]]; then echo 'export TERM=xterm' >> ~/.profile; fi
