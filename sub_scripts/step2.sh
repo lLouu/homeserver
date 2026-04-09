@@ -164,19 +164,7 @@ fi
 if [[ ! "$virtu" ]]; then
 ## Create network bridges and network configuration
 WAN=$(sudo cat /etc/network/interfaces | grep 'dhcp' | awk '{print($2)}')
-sudo mv /etc/network/interfaces /etc/network/interfaces.old
-cat > interfaces <<EOF
-# Localhost
-auto lo
-iface lo inet loopback
-
-# WAN
-auto vmbr0
-iface vmbr0 inet dhcp
-    bridge_ports WAN
-    bridge_stp off
-    bridge_fd 0
-
+cat > bridges <<EOF
 # guest network 10.1.1.0/24
 auto vmbr1
 iface vmbr1 inet static
@@ -214,10 +202,35 @@ iface vmbr5 inet static
     bridge_stp off
     bridge_fd 0
 EOF
-sed -i "s/WAN/$WAN/" interfaces
-chmod 644 interfaces
-sudo chown root:root interfaces
-sudo mv interfaces /etc/network/
+if [[ "$wifi" ]]; then 
+sudo apt-get install iptables -yq > /dev/null
+cat >> bridges <<EOF
+# WAN
+auto vmbr0
+iface vmbr0 inet static
+    address 10.255.255.1/30
+    bridge_ports none
+    bridge_stp off
+    bridge_fd 0
+   
+    post-up echo 1 > /proc/sys/net/ipv4/ip_forward
+    post-up iptables -t nat -A POSTROUTING -s '10.255.255.0/30' -o WAN -j MASQUERADE
+    post-down iptables -t nat -D POSTROUTING -s '10.255.255.0/30' -o WAN -j MASQUERADE
+EOF
+else
+cat >> bridges <<EOF
+# WAN
+auto vmbr0
+iface vmbr0 inet dhcp
+    bridge_ports WAN
+    bridge_stp off
+    bridge_fd 0
+EOF
+fi
+sed -i "s/WAN/$WAN/" bridges
+chmod 644 bridges
+sudo chown root:root bridges
+sudo mv bridges /etc/network/interfaces.d/
 sudo systemctl restart networking
 fi
 
