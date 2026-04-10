@@ -80,7 +80,7 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 ## Clean previous step auto-relaunch
 export TERM=xterm
 sudo rm /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf
-sed -i 's/~\/step2.sh//' ~/.bash_profile
+sed -i "/step2.sh/c\\" ~/.bash_profile
 
 ## Remove Debian Kernel
 echo "[~] Removing debian kernel"
@@ -256,7 +256,7 @@ echo "token:terraform@pve!$TOKEN_ID:0:0:extended terraform token:" | sudo tee -a
 lines=(
   "group:TerraformProviders:terraform@pve:Terraform Providers:"
   "role:terraformDataProvider:Datastore.AllocateSpace,Datastore.AllocateTemplate,Datastore.Audit:"
-  "role:terraformVMProvider:Pool.Allocate,Pool.Audit,VM.Allocate,VM.Audit,VM.Clone,VM.Config.CDROM,VM.Config.Cloudinit,VM.Config.CPU,VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,VM.Migrate,VM.PowerMgmt,SDN.Use:"
+  "role:terraformVMProvider:Pool.Allocate,Pool.Audit,VM.Allocate,VM.Audit,VM.Clone,VM.Console,VM.Config.CDROM,VM.Config.Cloudinit,VM.Config.CPU,VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,VM.Migrate,VM.PowerMgmt,SDN.Use:"
   "role:terraformSysProvider:Sys.Audit,Sys.Console,Sys.Modify:"
   "acl:1:/:@TerraformProviders:terraformDataProvider"
   "acl:1:/:@TerraformProviders:terraformVMProvider"
@@ -331,7 +331,7 @@ IN ACCEPT -i vmbr4 -p tcp --dport 8006
 EOF
 chmod 640 host.fw
 sudo chown root:www-data host.fw
-sudo mv host.fw /etc/pve/nodes/debian/
+sudo mv host.fw /etc/pve/nodes/$(hostname)/
 sudo systemctl restart pve-firewall
 
 # Setting up terraform, Packer & Ansible
@@ -371,7 +371,7 @@ echo $ROOT_PWD | sudo tee /root/.virt_roots.pwd >/dev/null && sudo chmod 400 /ro
 echo "[~] Creating firewall template"
 packer init pfsense.pkr.hcl >/dev/null
 if [[ ! "$virtu" ]]; then
-   packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub)" -var 'networks=[0,1,2,3,4,5]' pfsense.pkr.hcl >/dev/null
+   packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub)" -var "ansible_key_file=$(pwd)/ansible" -var 'networks=[0,1,2,3,4,5]' pfsense.pkr.hcl >/dev/null
 fi
 
 echo "[~] Deploying firewall"

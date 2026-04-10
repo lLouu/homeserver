@@ -26,6 +26,9 @@ variable "root_pwd" {
 variable "ansible_pub" {
   type = string
 }
+variable "ansible_key_file" {
+  type = string
+}
 
 
 source "proxmox-iso" "alpine-ansible-ready" {
@@ -109,6 +112,7 @@ source "proxmox-iso" "alpine-ansible-ready" {
     cloud_init              = true
     cloud_init_storage_pool = "local"
     ssh_username            = "ansible"
+    ssh_private_key_file = "${var.ansible_key_file}"
 }
 
 build {
