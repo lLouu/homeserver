@@ -24,7 +24,7 @@ variable "networks" {
   type    = list(number)
 }
 variable "ansible_pub" {
-  type = string
+  type = list(string)
 }
 variable "ansible_key_file" {
   type = string
@@ -81,10 +81,10 @@ source "proxmox-iso" "pfsense-ansible-ready" {
 
     # PACKER Boot Commands
     boot_command = [
-         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>", 
          "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><spacebar><enter><wait><left><enter><wait5><wait5><wait5><wait5><wait5><wait5><enter><wait>",
          "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-         "1<enter><wait>n<enter><wait>em0<enter><wait>em1<enter><wait>em2<enter><wait>em3<enter><wait>em4<enter><wait>em5<enter><wait>y<enter><wait5><wait5><wait5>",
+         "1<enter><wait>n<enter><wait>vtnet0<enter><wait>vtnet1<enter><wait>vtnet2<enter><wait>vtnet3<enter><wait>vtnet4<enter><wait>vtnet5<enter><wait>y<enter><wait5><wait5><wait5>",
+         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
          "2<enter><wait>2<enter><wait>n<enter><wait>10.1.1.1<enter><wait>24<enter><wait><enter><wait>n<enter><wait><enter><wait>y<enter><wait>10.1.1.10<enter><wait>10.1.1.200<enter><wait>n<enter><wait5><enter><wait>",
          "2<enter><wait>3<enter><wait>n<enter><wait>10.1.2.1<enter><wait>24<enter><wait><enter><wait>n<enter><wait><enter><wait>y<enter><wait>10.1.2.200<enter><wait>10.1.2.225<enter><wait>n<enter><wait5><enter><wait>",
          "2<enter><wait>4<enter><wait>n<enter><wait>10.1.3.1<enter><wait>24<enter><wait><enter><wait>n<enter><wait><enter><wait>y<enter><wait>10.1.3.200<enter><wait>10.1.3.225<enter><wait>n<enter><wait5><enter><wait>",
@@ -97,7 +97,16 @@ source "proxmox-iso" "pfsense-ansible-ready" {
          "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait>",
          "no<enter><wait><enter><wait><enter><wait><enter><wait>",
          "mkdir /home/ansible/.ssh<enter><wait>",
-         "echo '${var.ansible_pub}' > /home/ansible/.ssh/authorized_keys<enter><wait>",
+         "echo -n '${var.ansible_pub[0]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
+         "echo -n '${var.ansible_pub[1]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
+         "echo -n '${var.ansible_pub[2]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
+         "echo -n '${var.ansible_pub[3]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
+         "echo -n '${var.ansible_pub[4]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
+         "echo -n '${var.ansible_pub[5]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
+         "echo -n '${var.ansible_pub[6]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
+         "echo -n '${var.ansible_pub[7]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
+         "echo -n '${var.ansible_pub[8]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
+         "echo '${var.ansible_pub[9]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
          "chmod 700 /home/ansible/.ssh && chmod 600 /home/ansible/.ssh/authorized_keys<enter><wait>",
          "chown ansible:ansible /home/ansible/.ssh /home/ansible/.ssh/authorized_keys<enter><wait>",
          "echo 'Include /etc/ssh/sshd_config.d/*' >> /etc/ssh/sshd_config<enter><wait>",
@@ -112,7 +121,7 @@ source "proxmox-iso" "pfsense-ansible-ready" {
          "chmod 440 /usr/local/etc/sudoers.d/ansible && chown root:wheel /usr/local/etc/sudoers.d/ansible<enter><wait>",
          "sed -i '' 's/<unbound>/<unbound>\\n<forwarding\\/>/' /cf/conf/config.xml<enter><wait>",
          "exit<enter><wait>",
-         "5<enter><wait5><wait5><wait5><wait5><wait5><wait5>"
+         "5<enter>y<enter><wait5><wait5><wait5><wait5><wait5><wait5>"
     ]
     ssh_username = "ansible"
     ssh_private_key_file = "${var.ansible_key_file}"
