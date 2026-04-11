@@ -223,6 +223,7 @@ interface=vmbr0
 bind-interfaces
 
 dhcp-range=10.255.255.10,10.255.255.200,12h
+dhcp-option=3,10.255.255.1
 dhcp-option=6,8.8.8.8
 EOF
 sudo mv dnsmasq.conf /etc/dnsmasq.conf
@@ -265,7 +266,7 @@ echo "token:terraform@pve!$TOKEN_ID:0:0:extended terraform token:" | sudo tee -a
 lines=(
   "group:TerraformProviders:terraform@pve:Terraform Providers:"
   "role:terraformDataProvider:Datastore.AllocateSpace,Datastore.AllocateTemplate,Datastore.Audit:"
-  "role:terraformVMProvider:Pool.Allocate,Pool.Audit,VM.Allocate,VM.Audit,VM.Clone,VM.Console,VM.Config.CDROM,VM.Config.Cloudinit,VM.Config.CPU,VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,VM.Migrate,VM.PowerMgmt,SDN.Use:"
+  "role:terraformVMProvider:Pool.Allocate,Pool.Audit,VM.Allocate,VM.Audit,VM.Clone,VM.Console,VM.Config.CDROM,VM.Config.Cloudinit,VM.Config.CPU,VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,VM.Migrate,VM.PowerMgmt,VM.GuestAgent.Audit,VM.GuestAgent.Unrestricted,SDN.Use:"
   "role:terraformSysProvider:Sys.Audit,Sys.Console,Sys.Modify:"
   "acl:1:/:@TerraformProviders:terraformDataProvider"
   "acl:1:/:@TerraformProviders:terraformVMProvider"
@@ -394,7 +395,7 @@ rm plan
 echo "[~] Creating Alpine template"
 packer init alpine.pkr.hcl >/dev/null
 if [[ ! "$virtu" ]]; then
-   packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub)" -var "root_pwd=$ROOT_PWD" alpine.pkr.hcl >/dev/null
+   packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub)" -var "ansible_key_file=$(pwd)/ansible" -var "root_pwd=$ROOT_PWD" alpine.pkr.hcl >/dev/null
 fi
 
 echo "[~] Deploying Jenkins agent"

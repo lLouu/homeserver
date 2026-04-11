@@ -71,12 +71,11 @@ source "proxmox-iso" "alpine-ansible-ready" {
     }
     network_adapters {
         model    = "virtio"
-        bridge   = "vmbr1"
+        bridge   = "vmbr3"
     }
 
     # PACKER Boot Commands
     boot_command = [
-        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "root<enter><wait>",
         "ifconfig eth0 up && udhcpc -i eth0<enter><wait5>",
         "setup-alpine<enter><wait>",
@@ -84,9 +83,10 @@ source "proxmox-iso" "alpine-ansible-ready" {
         "alpine<enter><wait>",
         "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait>",
         "${var.root_pwd}<enter><wait>${var.root_pwd}<enter><wait>",
-        "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait>",
+        "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait5><wait5><enter><wait>",
         "no<enter><wait>",
-        "sda<enter><wait>sys<enter><wait>y<enter><wait5><wait5>",
+        "sda<enter><wait>sys<enter><wait>y<enter>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "reboot<enter><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
 
         "root<enter><wait>${var.root_pwd}<enter><wait>",

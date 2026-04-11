@@ -65,7 +65,7 @@ source "proxmox-iso" "pfsense-ansible-ready" {
 
     # VM System Settings
     disks {
-        type              = "virtio"
+        type              = "scsi"
         disk_size         = "20G"
         storage_pool      = "local"
     }
@@ -83,11 +83,11 @@ source "proxmox-iso" "pfsense-ansible-ready" {
     boot_command = [
          "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><spacebar><enter><wait><left><enter><wait5><wait5><wait5><wait5><wait5><wait5><enter><wait>",
          "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-         "1<enter><wait>n<enter><wait>vtnet0<enter><wait>vtnet1<enter><wait>vtnet2<enter><wait>vtnet3<enter><wait>vtnet4<enter><wait>vtnet5<enter><wait>y<enter><wait5><wait5><wait5>",
+         "1<enter><wait>n<enter><wait>vtnet0<enter><wait>vtnet3<enter><wait>vtnet1<enter><wait>vtnet2<enter><wait>vtnet4<enter><wait>vtnet5<enter><wait>y<enter><wait5><wait5><wait5>",
          "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-         "2<enter><wait>2<enter><wait>n<enter><wait>10.1.1.1<enter><wait>24<enter><wait><enter><wait>n<enter><wait><enter><wait>y<enter><wait>10.1.1.10<enter><wait>10.1.1.200<enter><wait>n<enter><wait5><enter><wait>",
-         "2<enter><wait>3<enter><wait>n<enter><wait>10.1.2.1<enter><wait>24<enter><wait><enter><wait>n<enter><wait><enter><wait>y<enter><wait>10.1.2.200<enter><wait>10.1.2.225<enter><wait>n<enter><wait5><enter><wait>",
-         "2<enter><wait>4<enter><wait>n<enter><wait>10.1.3.1<enter><wait>24<enter><wait><enter><wait>n<enter><wait><enter><wait>y<enter><wait>10.1.3.200<enter><wait>10.1.3.225<enter><wait>n<enter><wait5><enter><wait>",
+         "2<enter><wait>2<enter><wait>n<enter><wait>10.1.3.1<enter><wait>24<enter><wait><enter><wait>n<enter><wait><enter><wait>y<enter><wait>10.1.3.200<enter><wait>10.1.3.225<enter><wait>n<enter><wait5><enter><wait>",
+         "2<enter><wait>3<enter><wait>n<enter><wait>10.1.1.1<enter><wait>24<enter><wait><enter><wait>n<enter><wait><enter><wait>y<enter><wait>10.1.1.10<enter><wait>10.1.1.200<enter><wait>n<enter><wait5><enter><wait>",
+         "2<enter><wait>4<enter><wait>n<enter><wait>10.1.2.1<enter><wait>24<enter><wait><enter><wait>n<enter><wait><enter><wait>y<enter><wait>10.1.2.200<enter><wait>10.1.2.225<enter><wait>n<enter><wait5><enter><wait>",
          "2<enter><wait>5<enter><wait>n<enter><wait>10.1.4.1<enter><wait>24<enter><wait><enter><wait>n<enter><wait><enter><wait>y<enter><wait>10.1.4.200<enter><wait>10.1.4.225<enter><wait>n<enter><wait5><enter><wait>",
          "2<enter><wait>6<enter><wait>n<enter><wait>10.1.5.1<enter><wait>24<enter><wait><enter><wait>n<enter><wait><enter><wait>y<enter><wait>10.1.5.200<enter><wait>10.1.5.225<enter><wait>n<enter><wait5><enter><wait>",
          "14<enter><wait>y<enter><wait>",
@@ -116,7 +116,7 @@ source "proxmox-iso" "pfsense-ansible-ready" {
          "pfSsh.php playback enablesshd<enter><wait>",
          "service sshd onerestart<enter><wait>",
          
-         "echo 'y' | pkg install sudo python311-3.11.6<enter><wait>",
+         "echo 'y' | pkg install sudo python311-3.11.6<enter><wait5><wait5><wait5>",
          "echo 'ansible ALL=(ALL) NOPASSWD: ALL' > /usr/local/etc/sudoers.d/ansible<enter><wait>",
          "chmod 440 /usr/local/etc/sudoers.d/ansible && chown root:wheel /usr/local/etc/sudoers.d/ansible<enter><wait>",
          "sed -i '' 's/<unbound>/<unbound>\\n<forwarding\\/>/' /cf/conf/config.xml<enter><wait>",
@@ -124,6 +124,7 @@ source "proxmox-iso" "pfsense-ansible-ready" {
          "5<enter>y<enter><wait5><wait5><wait5><wait5><wait5><wait5>"
     ]
     ssh_username = "ansible"
+    ssh_host = "10.1.3.1"
     ssh_private_key_file = "${var.ansible_key_file}"
 }
 
