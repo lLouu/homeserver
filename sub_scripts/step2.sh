@@ -227,7 +227,6 @@ dhcp-option=3,10.255.255.1
 dhcp-option=6,8.8.8.8
 EOF
 sudo mv dnsmasq.conf /etc/dnsmasq.conf
-sudo systemctl restart dnsmasq.service
 cat >> bridges <<EOF
 # WAN
 auto vmbr0
@@ -247,6 +246,7 @@ chmod 644 bridges
 sudo chown root:root bridges
 sudo mv bridges /etc/network/interfaces.d/
 sudo systemctl restart networking
+if [[ "$wlan" ]]; then sudo systemctl restart dnsmasq.service; fi
 fi
 
 # Setup init terraform
@@ -374,6 +374,8 @@ else
    wget https://raw.githubusercontent.com$repository/$branch/virtu/ansible.pub -q >/dev/null
    chmod 600 ansible
 fi
+mkdir http
+cp ansible.pub ./http/
 ROOT_PWD=$(openssl rand -base64 64)
 echo $ROOT_PWD | sudo tee /root/.virt_roots.pwd >/dev/null && sudo chmod 400 /root/.virt_roots.pwd && sudo chown root:root /root/.virt_roots.pwd
 
@@ -381,8 +383,7 @@ echo $ROOT_PWD | sudo tee /root/.virt_roots.pwd >/dev/null && sudo chmod 400 /ro
 echo "[~] Creating firewall template"
 packer init pfsense.pkr.hcl >/dev/null
 if [[ ! "$virtu" ]]; then
-   ansible_pub_var="$(cat ansible.pub | fold -w 150 | awk '{printf "\"%s\"\", $0}' | sed 's/,$//')"
-   packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=[$ansible_pub_var]" -var "ansible_key_file=$(pwd)/ansible" -var 'networks=[0,1,2,3,4,5]' pfsense.pkr.hcl >/dev/null
+   packer build -var-file="proxmox.tfvars.json" -var "ansible_key_file=$(pwd)/ansible" -var 'networks=[0,1,2,3,4,5]' pfsense.pkr.hcl >/dev/null
 fi
 
 echo "[~] Deploying firewall"
@@ -395,7 +396,7 @@ rm plan
 echo "[~] Creating Alpine template"
 packer init alpine.pkr.hcl >/dev/null
 if [[ ! "$virtu" ]]; then
-   packer build -var-file="proxmox.tfvars.json" -var "ansible_pub=$(cat ansible.pub)" -var "ansible_key_file=$(pwd)/ansible" -var "root_pwd=$ROOT_PWD" alpine.pkr.hcl >/dev/null
+   packer build -var-file="proxmox.tfvars.json" -var "ansible_key_file=$(pwd)/ansible" -var "root_pwd=$ROOT_PWD" alpine.pkr.hcl >/dev/null
 fi
 
 echo "[~] Deploying Jenkins agent"

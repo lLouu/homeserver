@@ -23,9 +23,6 @@ variable "proxmox" {
 variable "networks" {
   type    = list(number)
 }
-variable "ansible_pub" {
-  type = list(string)
-}
 variable "ansible_key_file" {
   type = string
 }
@@ -80,6 +77,7 @@ source "proxmox-iso" "pfsense-ansible-ready" {
     }
 
     # PACKER Boot Commands
+    http_directory = "http"
     boot_command = [
          "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><spacebar><enter><wait><left><enter><wait5><wait5><wait5><wait5><wait5><wait5><enter><wait>",
          "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
@@ -97,16 +95,8 @@ source "proxmox-iso" "pfsense-ansible-ready" {
          "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait>",
          "no<enter><wait><enter><wait><enter><wait><enter><wait>",
          "mkdir /home/ansible/.ssh<enter><wait>",
-         "echo -n '${var.ansible_pub[0]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
-         "echo -n '${var.ansible_pub[1]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
-         "echo -n '${var.ansible_pub[2]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
-         "echo -n '${var.ansible_pub[3]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
-         "echo -n '${var.ansible_pub[4]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
-         "echo -n '${var.ansible_pub[5]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
-         "echo -n '${var.ansible_pub[6]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
-         "echo -n '${var.ansible_pub[7]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
-         "echo -n '${var.ansible_pub[8]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
-         "echo '${var.ansible_pub[9]}' >> /home/ansible/.ssh/authorized_keys<enter><wait>",
+         "echo 'y' | pkg install curl<enter><wait5><wait5><wait5><wait5>",
+         "curl -L -s http://{{ .HTTPIP }}:{{ .HTTPPort }}/ansible.pub > /home/ansible/.ssh/authorized_keys<enter><wait5>",
          "chmod 700 /home/ansible/.ssh && chmod 600 /home/ansible/.ssh/authorized_keys<enter><wait>",
          "chown ansible:ansible /home/ansible/.ssh /home/ansible/.ssh/authorized_keys<enter><wait>",
          "echo 'Include /etc/ssh/sshd_config.d/*' >> /etc/ssh/sshd_config<enter><wait>",
