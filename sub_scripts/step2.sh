@@ -169,6 +169,7 @@ fi
 if [[ ! "$virtu" ]]; then
 ## Create network bridges and network configuration
 WAN=$(sudo cat /etc/network/interfaces | grep 'dhcp' | awk '{print($2)}')
+if [[ ! "WAN" ]]; then WAN=$(nmcli device status | grep " connected " | awk '{print($1)}') fi
 cat > bridges <<EOF
 # guest network 10.1.1.0/24
 auto vmbr1
