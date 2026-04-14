@@ -23,9 +23,6 @@ variable "proxmox" {
 variable "root_pwd" {
   type = string
 }
-variable "ansible_key_file" {
-  type = string
-}
 
 
 source "proxmox-iso" "alpine-ansible-ready" {
@@ -81,20 +78,15 @@ source "proxmox-iso" "alpine-ansible-ready" {
         "alpine<enter><wait>",
         "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait>",
         "${var.root_pwd}<enter><wait>${var.root_pwd}<enter><wait>",
-        "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait5><wait5><enter><wait>",
-        "no<enter><wait>",
-        "sda<enter><wait>sys<enter><wait>y<enter>",
-        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait5>no<enter><wait>",
+        "sda<enter><wait>sys<enter><wait5>y<enter>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5>",
         "reboot<enter><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
 
         "root<enter><wait>${var.root_pwd}<enter><wait>",
 
         "adduser -s /bin/sh ansible -D<enter><wait>",
-        "sed -i 's/ansible:!/ansible:*/' /etc/shadow",
+        "sed -i 's/ansible:!/ansible:*/' /etc/shadow<enter><wait>",
         "mkdir /home/ansible/.ssh<enter><wait>",
         "wget http://{{ .HTTPIP }}:{{ .HTTPPort }}/ansible.pub -O /home/ansible/.ssh/authorized_keys<enter><wait5>",
         "chmod 700 /home/ansible/.ssh && chmod 600 /home/ansible/.ssh/authorized_keys<enter><wait>",
@@ -103,9 +95,12 @@ source "proxmox-iso" "alpine-ansible-ready" {
         "service sshd restart<enter><wait>",
         
         "sed -i 's/^#//' /etc/apk/repositories<enter><wait>",
-        "apk update && apk add --no-cache sudo python3 py3-pip cloud-init<enter><wait>",
+        "apk update && apk add --no-cache sudo python3 py3-pip cloud-init qemu-guest-agent<enter><wait>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5>",
         "echo 'ansible ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/ansible<enter><wait>",
         "chmod 440 /etc/sudoers.d/ansible && chown root:root /etc/sudoers.d/ansible<enter><wait>",
+        "rc-service qemu-guest-agent start<enter><wait>",
+        "rc-update add qemu-guest-agent default<enter><wait>",
 
         "poweroff<enter>"
     ]
@@ -113,8 +108,7 @@ source "proxmox-iso" "alpine-ansible-ready" {
     # VM Cloud-Init Settings
     cloud_init              = true
     cloud_init_storage_pool = "local"
-    ssh_username            = "ansible"
-    ssh_private_key_file = "${var.ansible_key_file}"
+    communicator            = "none"
 }
 
 build {

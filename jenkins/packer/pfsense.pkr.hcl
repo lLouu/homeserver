@@ -23,9 +23,6 @@ variable "proxmox" {
 variable "networks" {
   type    = list(number)
 }
-variable "ansible_key_file" {
-  type = string
-}
 
 
 source "proxmox-iso" "pfsense-ansible-ready" {
@@ -106,16 +103,16 @@ source "proxmox-iso" "pfsense-ansible-ready" {
          "pfSsh.php playback enablesshd<enter><wait>",
          "service sshd onerestart<enter><wait>",
          
-         "echo 'y' | pkg install sudo python311-3.11.6<enter><wait5><wait5><wait5>",
+         "echo 'y' | pkg install sudo python311-3.11.6 qemu-guest-agent<enter><wait5><wait5><wait5>",
+         "pfSsh.php playback svc enable qemu-guest-agent<enter><wait>",
+         "service qemu-guest-agent onestart<enter><wait>",
          "echo 'ansible ALL=(ALL) NOPASSWD: ALL' > /usr/local/etc/sudoers.d/ansible<enter><wait>",
          "chmod 440 /usr/local/etc/sudoers.d/ansible && chown root:wheel /usr/local/etc/sudoers.d/ansible<enter><wait>",
          "sed -i '' 's/<unbound>/<unbound>\\n<forwarding\\/>/' /cf/conf/config.xml<enter><wait>",
          "exit<enter><wait>",
          "5<enter>y<enter><wait5><wait5><wait5><wait5><wait5><wait5>"
     ]
-    ssh_username = "ansible"
-    ssh_host = "10.1.3.1"
-    ssh_private_key_file = "${var.ansible_key_file}"
+    communicator  = "none"
 }
 
 build {

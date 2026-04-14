@@ -169,7 +169,7 @@ fi
 if [[ ! "$virtu" ]]; then
 ## Create network bridges and network configuration
 WAN=$(sudo cat /etc/network/interfaces | grep 'dhcp' | awk '{print($2)}')
-if [[ ! "WAN" ]]; then WAN=$(nmcli device status | grep " connected " | awk '{print($1)}') fi
+if [[ ! "$WAN" ]]; then WAN=$(nmcli device status | grep " connected " | awk '{print($1)}' | head -n1); fi
 cat > bridges <<EOF
 # guest network 10.1.1.0/24
 auto vmbr1
@@ -377,14 +377,14 @@ else
 fi
 mkdir http
 cp ansible.pub ./http/
-ROOT_PWD=$(openssl rand -base64 64)
+ROOT_PWD=$(openssl rand -hex 128)
 echo $ROOT_PWD | sudo tee /root/.virt_roots.pwd >/dev/null && sudo chmod 400 /root/.virt_roots.pwd && sudo chown root:root /root/.virt_roots.pwd
 
 ## Create Pfsense packer config, and deploy the firewall
 echo "[~] Creating firewall template"
 packer init pfsense.pkr.hcl >/dev/null
 if [[ ! "$virtu" ]]; then
-   packer build -var-file="proxmox.tfvars.json" -var "ansible_key_file=$(pwd)/ansible" -var 'networks=[0,1,2,3,4,5]' pfsense.pkr.hcl >/dev/null
+   packer build -var-file="proxmox.tfvars.json" -var 'networks=[0,1,2,3,4,5]' pfsense.pkr.hcl >/dev/null
 fi
 
 echo "[~] Deploying firewall"
@@ -397,7 +397,7 @@ rm plan
 echo "[~] Creating Alpine template"
 packer init alpine.pkr.hcl >/dev/null
 if [[ ! "$virtu" ]]; then
-   packer build -var-file="proxmox.tfvars.json" -var "ansible_key_file=$(pwd)/ansible" -var "root_pwd=$ROOT_PWD" alpine.pkr.hcl >/dev/null
+   packer build -var-file="proxmox.tfvars.json" -var "root_pwd=$ROOT_PWD" alpine.pkr.hcl >/dev/null
 fi
 
 echo "[~] Deploying Jenkins agent"
