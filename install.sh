@@ -11,7 +11,7 @@ banner (){
         echo '/_/ /_/  \____//_/ /_/ /_/\___//____/ \___//_/    _____/ \___//_/     ';
         echo ""
         echo "Author : lLou_"
-        echo "Script version : V0.10"
+        echo "Script version : V0.11"
         echo ""
         echo ""
 }
@@ -228,10 +228,6 @@ RemainAfterExit=yes
 EOF
 fi
 sudo systemctl enable bcachefs-custom-mount.service
-# Integrate bcachefs in kernel
-openssl req -new -x509 -newkey rsa:8192 -keyout key.priv -out crt.der -outform DER -nodes -days 36500 -subj "/CN=BcachefsKey/" >/dev/null
-sudo /usr/src/linux-header-$(uname -r)/scripts/sign-file sha256 key.priv cert.der $(sudo modinfo -n bcachefs)
-rm key.priv
 
 creating="1"
 id=$(("$(ls -la /mnt | grep .tieredDrive | tail -n1 | awk '{print($9)}' | sed 's/.tieredDrive//')"+1))
@@ -393,6 +389,11 @@ sudo apt-get install open-iscsi chrony -yq > /dev/null
 sudo debconf-set-selections <<< "postfix postfix/mailname string '$(hostname)'"
 sudo debconf-set-selections <<< "postfix postfix/main_mailer_type string 'Satellite system'"
 sudo apt-get install postfix -yq > /dev/null
+
+# Integrate bcachefs in kernel
+openssl req -new -x509 -newkey rsa:8192 -keyout key.priv -out crt.der -outform DER -nodes -days 36500 -subj "/CN=BcachefsKey/" -quiet >/dev/null 2>/dev/null
+sudo /usr/src/$(ls /usr/src/ | grep pve)/scripts/sign-file sha256 key.priv crt.der $(sudo modinfo -n bcachefs)
+rm key.priv
 
 ## Set step 2 on run after reboot
 wget https://raw.githubusercontent.com$repository/$branch/sub_scripts/step2.sh -q >/dev/null
