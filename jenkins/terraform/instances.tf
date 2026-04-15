@@ -20,6 +20,7 @@ resource "proxmox_vm_qemu" "instances" {
   boot                = "order=scsi0"
   scsihw              = "virtio-scsi-pci"
   agent               = 1
+  skip_ipv6           = true
   start_at_node_boot  = true
   vm_state            = "running"
 
@@ -42,7 +43,7 @@ resource "proxmox_vm_qemu" "instances" {
     model  = "virtio"
     bridge = "vmbr${var.vms[count.index].network}"
   }
-  ipconfig0 = "10.1.${var.vms[count.index].network}.${var.vms[count.index].end_ip}/24,gw=10.1.${var.vms[count.index].network}.1"
+  ipconfig0 = "ip=10.1.${var.vms[count.index].network}.${var.vms[count.index].end_ip}/24,gw=10.1.${var.vms[count.index].network}.1"
 
   # TODO : PCI
 }

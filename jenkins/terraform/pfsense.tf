@@ -18,6 +18,7 @@ resource "proxmox_vm_qemu" "pfsense" {
   boot                = "order=scsi0"
   scsihw              = "virtio-scsi-pci"
   agent               = 1
+  skip_ipv6           = true
   start_at_node_boot  = true
   vm_state            = "running"
 

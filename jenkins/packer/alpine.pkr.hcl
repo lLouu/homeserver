@@ -80,8 +80,9 @@ source "proxmox-iso" "alpine-ansible-ready" {
         "${var.root_pwd}<enter><wait>${var.root_pwd}<enter><wait>",
         "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait5>no<enter><wait>",
         "sda<enter><wait>sys<enter><wait5>y<enter>",
-        "<wait5><wait5><wait5><wait5><wait5><wait5>",
-        "reboot<enter><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "reboot<enter>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
 
         "root<enter><wait>${var.root_pwd}<enter><wait>",
 
