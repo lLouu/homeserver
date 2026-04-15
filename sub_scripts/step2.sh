@@ -345,6 +345,9 @@ sudo chown root:www-data host.fw
 sudo mv host.fw /etc/pve/nodes/$(hostname)/
 sudo systemctl restart pve-firewall
 
+# Creating content pool
+sudo pvesm add dir storage --path /mnt/content >/dev/null
+
 # Setting up terraform, Packer & Ansible
 echo "[~] Downloading terraform, packer and ansible"
 wget -q -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg

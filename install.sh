@@ -214,6 +214,9 @@ sudo swapon -a 2>/dev/null
 
 if [[ ! -f "/etc/systemd/system/bcachefs-custom-mount.service" ]]; then 
     sudo tee /etc/systemd/system/bcachefs-custom-mount.service > /dev/null <<EOF
+[Install]
+WantedBy=multi-user.target
+
 [Unit]
 Description=Mount bcachefs devices
 After=systemd-udev-settle.service
@@ -224,6 +227,11 @@ Type=oneshot
 RemainAfterExit=yes
 EOF
 fi
+sudo systemctl enable bcachefs-custom-mount.service
+# Integrate bcachefs in kernel
+openssl req -new -x509 -newkey rsa:8192 -keyout key.priv -out crt.der -outform DER -nodes -days 36500 -subj "/CN=BcachefsKey/" >/dev/null
+sudo /usr/src/linux-header-$(uname -r)/scripts/sign-file sha256 key.priv cert.der $(sudo modinfo -n bcachefs)
+rm key.priv
 
 creating="1"
 id=$(("$(ls -la /mnt | grep .tieredDrive | tail -n1 | awk '{print($9)}' | sed 's/.tieredDrive//')"+1))
