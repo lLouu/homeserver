@@ -394,6 +394,7 @@ sudo apt-get install postfix -yq > /dev/null
 openssl req -new -x509 -newkey rsa:8192 -keyout key.priv -out crt.der -outform DER -nodes -days 36500 -subj "/CN=BcachefsKey/" -quiet >/dev/null 2>/dev/null
 sudo /usr/src/$(ls /usr/src/ | grep pve)/scripts/sign-file sha256 key.priv crt.der $(sudo modinfo -n bcachefs)
 rm key.priv
+printf "homeserver\nhomeserver\n" | sudo mokutil --import crt.der >/dev/null
 
 ## Set step 2 on run after reboot
 wget https://raw.githubusercontent.com$repository/$branch/sub_scripts/step2.sh -q >/dev/null

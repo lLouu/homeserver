@@ -346,7 +346,7 @@ sudo mv host.fw /etc/pve/nodes/$(hostname)/
 sudo systemctl restart pve-firewall
 
 # Creating content pool
-sudo pvesm add dir storage --path /mnt/content >/dev/null
+sudo pvesm add dir content --path /mnt/content >/dev/null
 
 # Setting up terraform, Packer & Ansible
 echo "[~] Downloading terraform, packer and ansible"
