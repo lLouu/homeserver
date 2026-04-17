@@ -227,7 +227,7 @@ Type=oneshot
 RemainAfterExit=yes
 EOF
 fi
-sudo systemctl enable bcachefs-custom-mount.service
+sudo systemctl enable bcachefs-custom-mount.service >/dev/null
 
 creating="1"
 id=$(("$(ls -la /mnt | grep .tieredDrive | tail -n1 | awk '{print($9)}' | sed 's/.tieredDrive//')"+1))
@@ -391,7 +391,7 @@ sudo debconf-set-selections <<< "postfix postfix/main_mailer_type string 'Satell
 sudo apt-get install postfix -yq > /dev/null
 
 # Integrate bcachefs in kernel
-openssl req -new -x509 -newkey rsa:8192 -keyout key.priv -out crt.der -outform DER -nodes -days 36500 -subj "/CN=BcachefsKey/" -quiet >/dev/null 2>/dev/null
+openssl req -new -x509 -newkey rsa:4096 -keyout key.priv -out crt.der -outform DER -nodes -days 36500 -subj "/CN=BcachefsKey/" -quiet >/dev/null 2>/dev/null
 sudo /usr/src/$(ls /usr/src/ | grep pve)/scripts/sign-file sha256 key.priv crt.der $(sudo modinfo -n bcachefs)
 rm key.priv
 printf "homeserver\nhomeserver\n" | sudo mokutil --import crt.der >/dev/null
