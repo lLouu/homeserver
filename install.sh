@@ -31,7 +31,6 @@ mkdir -p $artifacts $log_dir
 cd $artifacts
 
 stop (){
-   if [[ -d $artifacts ]];then sudo rm -R $artifacts; fi
    if [[ -f "/etc/sudoers.d/tmp" ]];then sudo rm /etc/sudoers.d/tmp; fi
    exit 1
 }
@@ -178,6 +177,9 @@ echo ""
 # Manage data 
 echo "[~] Mounting drives"
 sudo apt-get install pve-headers bcachefs-tools bcachefs-kernel-dkms snapraid mergerfs -yq > /dev/null
+# Reset fstab
+sudo sed -i 's/^.*swap.*$//' /etc/fstab
+sudo sed -i 's/^.*/mnt/.tieredDrive.*$//' /etc/fstab
 
 # Mount disks
 echo "[*] Please ensure to have done your partitionning before the script execution. CTRL+C if that has not be done yet"
@@ -315,7 +317,7 @@ while [[ "$inputed_part" ]];do
     parityDrives+=($part)
 done
 
-sudo touch /etc/snapraid.conf
+echo "" | sudo tee /etc/snapraid.conf >/dev/null
 for drive in ${parityDrives[@]}; do echo "parity /dev/$drive" | sudo tee -a /etc/snapraid.conf >/dev/null; done
 for data in "$(ls -a /mnt | grep .tieredDrive)"; do
     sudo mkdir -p /mnt/$data
@@ -341,15 +343,15 @@ sudo mv storage_manager.sh /opt/homeserver/storage_manager
 # Swap optimisation
 echo "[~] Optimizing swap"
 ## config lz4
-echo "lz4" | sudo tee -a /etc/initramfs-tools/modules > /dev/null
+echo "lz4" | sudo tee /etc/initramfs-tools/modules > /dev/null
 echo "lz4_compress" | sudo tee -a /etc/initramfs-tools/modules > /dev/null
 sudo update-initramfs -u > /dev/null
 ## zram
 sudo apt-get install zram-tools -yq > /dev/null
-echo -e "ALGO=lz4\nPERCENT=60\nPRIORITY=100" | sudo tee -a /etc/default/zramswap > /dev/null
+echo -e "ALGO=lz4\nPERCENT=60\nPRIORITY=100" | sudo tee /etc/default/zramswap > /dev/null
 sudo service zramswap restart
 ## zswap
-sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold/' /etc/default/grub
+if [[ ! "$(grep splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold /etc/default/grub)" ]]; then sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold/' /etc/default/grub; fi
 sudo update-grub >/dev/null 2>/dev/null
 ## nohang
 sudo apt-get install make fakeroot git -yq > /dev/null
@@ -390,11 +392,8 @@ sudo debconf-set-selections <<< "postfix postfix/mailname string '$(hostname)'"
 sudo debconf-set-selections <<< "postfix postfix/main_mailer_type string 'Satellite system'"
 sudo apt-get install postfix -yq > /dev/null
 
-# Integrate bcachefs in kernel
-openssl req -new -x509 -newkey rsa:4096 -keyout key.priv -out crt.der -outform DER -nodes -days 36500 -subj "/CN=BcachefsKey/" -quiet >/dev/null 2>/dev/null
-sudo /usr/src/$(ls /usr/src/ | grep pve)/scripts/sign-file sha256 key.priv crt.der $(sudo modinfo -n bcachefs)
-rm key.priv
-printf "homeserver\nhomeserver\n" | sudo mokutil --import crt.der >/dev/null
+# Recognise bcachefs dkms signature in kernel
+if [[ "$(sudo mokutil --test-key /var/lib/dkms/mok.pub | grep 'is not enrolled')" ]]; then printf "homeserver\nhomeserver\n" | sudo mokutil --import /var/lib/dkms/mok.pub >/dev/null; fi
 
 ## Set step 2 on run after reboot
 wget https://raw.githubusercontent.com$repository/$branch/sub_scripts/step2.sh -q >/dev/null
@@ -406,7 +405,7 @@ if [[ $nologs ]];then options="$options -nl";fi
 if [[ $nounlock ]];then options="$options -nu";fi
 if [[ $virtu ]];then options="$options -v";fi
 if [[ $wlan ]]; then options="$options --wlan"; fi
-echo "$artifacts/step2.sh $options" >> ~/.bash_profile
+if [[ ! "$wait" ]]; then echo "$artifacts/step2.sh $options" >> ~/.bash_profile; else echo "$artifacts/step2.sh $options" > ~/continue.sh; chmod +x ~/continue.sh; fi
 if [[ ! "$(grep -qE 'export TERM=xterm' ~/.bash_profile)" ]]; then echo 'export TERM=xterm' >> ~/.bash_profile; fi
 if [[ ! "$(grep -qE 'export TERM=xterm' ~/.profile)" ]]; then echo 'export TERM=xterm' >> ~/.profile; fi
 

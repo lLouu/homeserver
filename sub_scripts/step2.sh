@@ -1,6 +1,5 @@
 ## Init back
 stop (){
-   if [[ -d $artifacts ]];then sudo rm -R $artifacts; fi
    if [[ -f "/etc/sudoers.d/tmp" ]];then sudo rm /etc/sudoers.d/tmp; fi
    exit 1
 }
@@ -219,7 +218,7 @@ iface vmbr0 inet dhcp
 EOF
 else
 sudo apt-get install iptables dnsmasq -yq > /dev/null
-cat >> dnsmasq.conf <<EOF
+cat > dnsmasq.conf <<EOF
 interface=vmbr0
 bind-interfaces
 
@@ -261,6 +260,9 @@ TOKEN_SECRET="$(openssl rand -hex 8)-$(openssl rand -hex 4)-$(openssl rand -hex 
 
 ## Add terraform user
 echo "[~] Setting up proxmox API"
+sudo sed 's/^.*terraform.*$//' /etc/pve/user.cfg
+sudo sed 's/^.*terraform.*$//' /etc/pve/priv/token.cfg
+sudo sed 's/^.*terraform.*$//' /etc/pve/priv/shadow.cfg
 echo "user:terraform@pve:1:0:::::::" | sudo tee -a /etc/pve/user.cfg > /dev/null
 echo "token:terraform@pve!$TOKEN_ID:0:0:extended terraform token:" | sudo tee -a /etc/pve/user.cfg > /dev/null
 
