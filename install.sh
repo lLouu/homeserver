@@ -227,7 +227,7 @@ Type=oneshot
 RemainAfterExit=yes
 EOF
 fi
-sudo systemctl enable bcachefs-custom-mount.service >/dev/null
+sudo systemctl enable bcachefs-custom-mount.service >/dev/null 2>/dev/null
 
 creating="1"
 id=$(("$(ls -la /mnt | grep .tieredDrive | tail -n1 | awk '{print($9)}' | sed 's/.tieredDrive//')"+1))

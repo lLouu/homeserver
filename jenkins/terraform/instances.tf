@@ -8,6 +8,8 @@ resource "proxmox_vm_qemu" "instances" {
   name        = var.vms[count.index].name
   vmid        = var.vms[count.index].id
   clone       = "${var.vms[count.index].os}-ansible-ready"
+  full_clone  = true
+  os_type     = "cloud-init"
 
   # Ressources
   memory      = var.vms[count.index].ram
@@ -25,6 +27,12 @@ resource "proxmox_vm_qemu" "instances" {
   vm_state            = "running"
 
   # Storage
+  disk {
+    type    = "cloudinit"
+    storage = "local"
+    slot    = "scsi9"
+  }
+
   dynamic "disk" {
     for_each = var.vms[count.index].disks
 
@@ -39,7 +47,7 @@ resource "proxmox_vm_qemu" "instances" {
 
   # Network
   network {
-    id     = var.vms[count.index].network
+    id     = 0
     model  = "virtio"
     bridge = "vmbr${var.vms[count.index].network}"
   }
