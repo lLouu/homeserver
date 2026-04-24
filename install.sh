@@ -210,6 +210,7 @@ for vram_drive in ${swapDrives[@]};do
       echo "/dev/$vram_drive none swap sw,pri=10 0 0" | sudo tee -a /etc/fstab > /dev/null
    fi
 done
+if [[ -f "/etc/initramfs/conf.d/resume" ]]; then sudo rm /etc/initramfs/conf.d/resume; fi
 sudo swapon -a 2>/dev/null
 
 # Main storage
@@ -351,7 +352,7 @@ sudo apt-get install zram-tools -yq > /dev/null
 echo -e "ALGO=lz4\nPERCENT=60\nPRIORITY=100" | sudo tee /etc/default/zramswap > /dev/null
 sudo service zramswap restart
 ## zswap
-if [[ ! "$(grep splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold /etc/default/grub)" ]]; then sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold/' /etc/default/grub; fi
+if [[ ! "$(grep 'splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold' /etc/default/grub)" ]]; then sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20 zswap.zpool=z3fold/' /etc/default/grub; fi
 sudo update-grub >/dev/null 2>/dev/null
 ## nohang
 sudo apt-get install make fakeroot git -yq > /dev/null
