@@ -96,10 +96,12 @@ source "proxmox-iso" "alpine-ansible-ready" {
         "service sshd restart<enter><wait>",
         
         "sed -i 's/^#//' /etc/apk/repositories<enter><wait>",
-        "apk update && apk add --no-cache sudo python3 py3-pip cloud-init qemu-guest-agent<enter><wait>",
+        "apk update && apk add --no-cache sudo python3 py3-pip cloud-init util-linux qemu-guest-agent e2fsprogs-extra<enter><wait>",
         "<wait5><wait5><wait5><wait5><wait5><wait5>",
         "echo 'ansible ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/ansible<enter><wait>",
         "chmod 440 /etc/sudoers.d/ansible && chown root:root /etc/sudoers.d/ansible<enter><wait>",
+        "echo 'datasource_list: [ NoCloud, ConfigDrive ]' > /etc/cloud/cloud.cfg.d/02-datasource.cfg<enter><wait>",
+        "setup-cloud-init<enter><wait>",
         "rc-service qemu-guest-agent start<enter><wait>",
         "rc-update add qemu-guest-agent default<enter><wait>",
 
