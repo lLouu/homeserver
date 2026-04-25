@@ -260,9 +260,9 @@ TOKEN_SECRET="$(openssl rand -hex 8)-$(openssl rand -hex 4)-$(openssl rand -hex 
 
 ## Add terraform user
 echo "[~] Setting up proxmox API"
-sudo sed 's/^.*terraform.*$//' /etc/pve/user.cfg
-sudo sed 's/^.*terraform.*$//' /etc/pve/priv/token.cfg
-sudo sed 's/^.*terraform.*$//' /etc/pve/priv/shadow.cfg
+sudo sed 's/^.*terraform.*$//' /etc/pve/user.cfg 2>/dev/null
+sudo sed 's/^.*terraform.*$//' /etc/pve/priv/token.cfg 2>/dev/null
+sudo sed 's/^.*terraform.*$//' /etc/pve/priv/shadow.cfg 2>/dev/null
 echo "user:terraform@pve:1:0:::::::" | sudo tee -a /etc/pve/user.cfg > /dev/null
 echo "token:terraform@pve!$TOKEN_ID:0:0:extended terraform token:" | sudo tee -a /etc/pve/user.cfg > /dev/null
 

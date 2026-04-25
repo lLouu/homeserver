@@ -3,6 +3,18 @@ if [[ -f "/tmp/jenkins-cli.jar" ]]; then sudo /bin/rm /tmp/jenkins-cli.jar; fi
 sudo /usr/bin/wget http://localhost:8080/jnlpJars/jenkins-cli.jar -O /tmp/jenkins-cli.jar
 CLI="java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(sudo /bin/cat /var/lib/jenkins/secrets/initialAdminPassword)"
 
+## Setup jenkins url
+cat > /var/lib/jenkins/jenkins.model.JenkinsLocationConfiguration.xml <<EOF
+<?xml version='1.1' encoding='UTF-8'?>
+<jenkins.model.JenkinsLocationConfiguration>
+  <jenkinsUrl>http://localhost:8080/</jenkinsUrl>
+</jenkins.model.JenkinsLocationConfiguration>
+EOF
+
+## Restart jenkins for url load
+sudo /sbin/rc-service jenkins -s restart
+sleep 30
+
 ## Plugin installation
 $CLI install-plugin workflow-job workflow-aggregator workflow-cps git credentials plain-credentials ssh-credentials ssh-agent
 

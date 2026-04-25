@@ -31,6 +31,7 @@ resource "proxmox_vm_qemu" "instances" {
     type    = "cloudinit"
     storage = "local"
     slot    = "scsi9"
+    format  = "qcow2"
   }
 
   dynamic "disk" {
