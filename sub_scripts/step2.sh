@@ -379,13 +379,18 @@ sed -i "s/===ID===/terraform@pve!$TOKEN_ID/" proxmox.tfvars.json
 sed -i "s/===SECRET===/$TOKEN_SECRET/" proxmox.tfvars.json
 
 ## Create Ansible rsa id
-if [[ ! "$virtu" ]]; then
-   ssh-keygen -f ansible -N "" -t rsa -b 8192 -q
-   sed -i "s/$(whoami)/ansible/" ansible.pub
+if [[ -f "$artifacts/ansible" ]]; then
+   cp $artifacts/ansible* ./
 else
-   wget https://raw.githubusercontent.com$repository/$branch/virtu/ansible -q >/dev/null
-   wget https://raw.githubusercontent.com$repository/$branch/virtu/ansible.pub -q >/dev/null
-   chmod 600 ansible
+   if [[ ! "$virtu" ]]; then
+      ssh-keygen -f ansible -N "" -t rsa -b 8192 -q
+      sed -i "s/$(whoami)/ansible/" ansible.pub
+   else
+      wget https://raw.githubusercontent.com$repository/$branch/virtu/ansible -q >/dev/null
+      wget https://raw.githubusercontent.com$repository/$branch/virtu/ansible.pub -q >/dev/null
+      chmod 600 ansible
+   fi
+   cp ansible* $artifacts/
 fi
 mkdir http
 cp ansible.pub ./http/
