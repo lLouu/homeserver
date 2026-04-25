@@ -44,6 +44,7 @@ wait=""
 virtu=""
 nounlock=""
 wlan=""
+debug=""
 repository="/llouu/homeserver"
 
 POSITIONAL_ARGS=()
@@ -77,6 +78,10 @@ while [[ $# -gt 0 ]]; do
       wlan="1"
       shift
       ;;
+    -d|--debug)
+      debug="1"
+      shift
+      ;;
     -w|--wait|--no-reboot)
       wait="1"
       shift
@@ -97,6 +102,7 @@ while [[ $# -gt 0 ]]; do
       echo "[*] --wifi | --wlan - Enable proxmox natting for LAN over WiFi"
       echo "[*] -nl | --no-log - Disable logging"
       echo "[*] -v | --virtu - VM mode (no proxmox configuration, expecting VM in local network)"
+      echo "[*] -d | --debug - Debug mode"
       echo "[*] -h | --help - Get help"
       stop
       ;;
@@ -115,6 +121,7 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 
 # match the branch
 if [[ $check ]];then
+    if [[ -f "install.sh" ]]; then rm install.sh; fi
     wget https://raw.githubusercontent.com$repository/$branch/install.sh -q >/dev/null
     chmod +x install.sh
     options="--repository $repository --branch $branch -nc"
@@ -123,6 +130,7 @@ if [[ $check ]];then
     if [[ $virtu ]]; then options="$options -v"; fi
     if [[ $nounlock ]]; then options="$options -nu"; fi
     if [[ $wlan ]]; then options="$options --wlan"; fi
+    if [[ $debug ]]; then options="$options --debug"; fi
     ./install.sh $options $POSITIONAL_ARGS
     exit
 fi
@@ -356,6 +364,7 @@ if [[ ! "$(grep 'splash zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_perc
 sudo update-grub >/dev/null 2>/dev/null
 ## nohang
 sudo apt-get install make fakeroot git -yq > /dev/null
+if [[ -d "nohang" ]]; then sudo rm -r nohang; fi
 git clone https://github.com/hakavlad/nohang.git --quiet >/dev/null 2>/dev/null && cd nohang
 ./deb/build.sh >/dev/null 2>/dev/null
 sudo apt-get install ./deb/package.deb -yq > /dev/null
@@ -405,6 +414,7 @@ if [[ $nologs ]];then options="$options -nl";fi
 if [[ $nounlock ]];then options="$options -nu";fi
 if [[ $virtu ]];then options="$options -v";fi
 if [[ $wlan ]]; then options="$options --wlan"; fi
+if [[ $debug ]]; then options="$options --debug"; fi
 touch ~/.bash_profile
 if [[ ! "$wait" ]]; then echo "$artifacts/step2.sh $options" >> ~/.bash_profile; else echo "$artifacts/step2.sh $options" > ~/continue.sh; chmod +x ~/continue.sh; fi
 if [[ ! "$(grep -qE 'export TERM=xterm' ~/.bash_profile)" ]]; then echo 'export TERM=xterm' >> ~/.bash_profile; fi

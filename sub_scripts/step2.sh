@@ -26,6 +26,7 @@ nologs=""
 nounlock=""
 virtu=""
 wlan=""
+debug=""
 repository="/llouu/homeserver"
 
 POSITIONAL_ARGS=()
@@ -60,6 +61,10 @@ while [[ $# -gt 0 ]]; do
       wlan="1"
       shift
       ;;
+    -d|--debug)
+      debug="1"
+      shift
+      ;;
     -v|--virtu)
       virtu="1"
       shift
@@ -78,7 +83,7 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 #######
 ## Clean previous step auto-relaunch
 export TERM=xterm
-sudo rm /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf
+if [[ -f "/etc/systemd/system/getty@tty1.service.d/temp_autologin.conf" ]]; then sudo rm /etc/systemd/system/getty@tty1.service.d/temp_autologin.conf; fi
 sed -i "/step2.sh/c\\" ~/.bash_profile
 
 ## Remove Debian Kernel
@@ -88,7 +93,7 @@ sudo update-grub >/dev/null 2>/dev/null
 echo "[+] Debian kernel Removed"
 
 # Remove entreprise proxmox repo
-sudo mv /etc/apt/sources.list.d/pve-enterprise.sources /etc/apt/sources.list.d/pve-enterprise.sources.disabled
+if [[ -f "/etc/apt/sources.list.d/pve-enterprise.sources" ]]; then sudo mv /etc/apt/sources.list.d/pve-enterprise.sources /etc/apt/sources.list.d/pve-enterprise.sources.disabled; fi
 
 # Unlock vGPU
 sudo apt-get install python3 python3-pip -yq > /dev/null
@@ -348,10 +353,11 @@ sudo mv host.fw /etc/pve/nodes/$(hostname)/
 sudo systemctl restart pve-firewall
 
 # Creating content pool
-sudo pvesm add dir content --path /mnt/content >/dev/null
+sudo pvesm add dir content --path /mnt/content >/dev/null 2>/dev/null
 
 # Setting up terraform, Packer & Ansible
 echo "[~] Downloading terraform, packer and ansible"
+if [[ -f "/usr/share/keyrings/hashicorp-archive-keyring.gpg" ]]; then sudo mv /usr/share/keyrings/hashicorp-archive-keyring.gpg /usr/share/keyrings/hashicorp-archive-keyring.gpg.old ; fi
 wget -q -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 newdpkg="deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main"
 echo "$newdpkg" | sudo tee /etc/apt/sources.list.d/tmp_hashicorp.list >/dev/null
@@ -361,6 +367,7 @@ sudo pip install ansible -q >/dev/null 2>/dev/null
 
 # Deploying initial state
 echo "[~] Fetching for configuration files"
+if [[ -d "homeserver" ]]; then sudo rm -r homeserver; fi
 git clone -b $branch https://github.com$repository --quiet >/dev/null 2>/dev/null
 cd homeserver/jenkins/terraform
 mv ../configs/* ./
@@ -386,25 +393,36 @@ ROOT_PWD=$(openssl rand -hex 128)
 echo $ROOT_PWD | sudo tee /root/.virt_roots.pwd >/dev/null && sudo chmod 400 /root/.virt_roots.pwd && sudo chown root:root /root/.virt_roots.pwd
 
 ## Create Pfsense packer config, and deploy the firewall
+if [[ "$(sudo qm status 300 2>/dev/null)" ]]; then
 echo "[~] Creating firewall template"
 packer init pfsense.pkr.hcl >/dev/null
 if [[ ! "$virtu" ]]; then
    packer build -var-file="proxmox.tfvars.json" -var 'networks=[0,1,2,3,4,5]' pfsense.pkr.hcl >/dev/null
 fi
+fi
 
+if [[ "$(sudo qm status 500 2/dev/null)" ]]; then
 echo "[~] Deploying firewall"
 terraform init >/dev/null
 echo '[]' | terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json -out plan >/dev/null
 if [[ ! "$virtu" ]]; then terraform apply "plan" >/dev/null; fi
 rm plan
+fi
 
 ## Create Packer template of alpine and deploy jenkins agent
+if [[ "$(sudo qm status 301 2>/dev/null)" ]]; then
 echo "[~] Creating Alpine template"
 packer init alpine.pkr.hcl >/dev/null
 if [[ ! "$virtu" ]]; then
    packer build -var-file="proxmox.tfvars.json" -var "root_pwd=$ROOT_PWD" alpine.pkr.hcl >/dev/null
 fi
+fi
 
+if [[ ! "$(sudo qm status 501 2>/dev/null)" ]]; then
+   echo "[~] Destroying old Jenkins agent"
+   sudo qm shutdown 501
+   sudo qm destroy 501
+fi
 echo "[~] Deploying Jenkins agent"
 terraform init >/dev/null
 terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json --var-file=init.tfvars.json -out plan >/dev/null
@@ -412,6 +430,7 @@ if [[ ! "$virtu" ]]; then terraform apply "plan" >/dev/null; fi
 rm plan
 
 ## Create remote ansible user
+if [[ "$(id -u ansible >/dev/null)" ]]; then
 sudo apt-get install ssh -yq >/dev/null
 sudo adduser ansible --disabled-password --gecos "" --quiet >/dev/null 2>/dev/null
 sudo sed -i 's/ansible:!/ansible:*/' /etc/shadow
@@ -430,6 +449,7 @@ EOF
 sudo mv first_setup.conf /etc/ssh/sshd_config.d/
 sudo service sshd restart
 echo 'ansible ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/ansible >/dev/null
+fi
 
 ## Connect with ansible to setup jenkins for it to handle the other Packer and terraform edits
 ansible-playbook -i hosts.yml -u ansible --key-file ansible preinstall.yml -e "branch='$branch' repository='$repository' ssh_priv='$(cat ansible)' ssh_pub='$(cat ansible.pub)' proxmox_config='$(cat proxmox.tfvars.json)' root_pwd='$ROOT_PWD'"
@@ -437,12 +457,14 @@ ansible-playbook -i hosts.yml -u ansible --key-file ansible preinstall.yml -e "b
 cd $artifacts
 
 # Unsetting terraform & Ansible
+if [[ ! "$debug" ]]; then
 sudo apt-get -yq remove terraform packer >/dev/null 2>/dev/null
 sudo pip uninstall ansible -yq >/dev/null 2>/dev/null
 sudo rm /usr/share/keyrings/hashicorp-archive-keyring.gpg
 sudo rm /etc/apt/sources.list.d/tmp_hashicorp.list
 
 sudo apt-get -yq autoremove >/dev/null 2>/dev/null
+fi
 
 echo "[*] Script executed in $(date -d@$(($(date +%s)-$start)) -u +%H:%M:%S)"
 stop

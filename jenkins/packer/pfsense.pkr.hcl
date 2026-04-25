@@ -103,7 +103,7 @@ source "proxmox-iso" "pfsense-ansible-ready" {
          "pfSsh.php playback enablesshd<enter><wait>",
          
          "echo 'y' | pkg install sudo python311-3.11.6 qemu-guest-agent<enter><wait5><wait5><wait5>",
-         "echo 'qemu_guest_agent_enable=\"YES\"' >> /etc/rc.conf<enter><wait>",
+         "sysrc qemu_guest_agent_enable=YES<enter><wait>",
          "cat > /usr/local/etc/rc.d/qemu-agent.sh <<EOF<enter>#!/bin/sh<enter>sleep 3<enter>service qemu-guest-agent start<enter>EOF<enter><wait>",
          "echo 'ansible ALL=(ALL) NOPASSWD: ALL' > /usr/local/etc/sudoers.d/ansible<enter><wait>",
          "chmod 440 /usr/local/etc/sudoers.d/ansible && chown root:wheel /usr/local/etc/sudoers.d/ansible<enter><wait>",
