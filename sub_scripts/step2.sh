@@ -435,7 +435,6 @@ echo 'ansible ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/ansible >/dev/n
 ansible-playbook -i hosts.yml -u ansible --key-file ansible preinstall.yml -e "branch='$branch' repository='$repository' ssh_priv='$(cat ansible)' ssh_pub='$(cat ansible.pub)' proxmox_config='$(cat proxmox.tfvars.json)' root_pwd='$ROOT_PWD'"
 
 cd $artifacts
-sudo rm -r homeserver
 
 # Unsetting terraform & Ansible
 sudo apt-get -yq remove terraform packer >/dev/null 2>/dev/null

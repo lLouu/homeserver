@@ -179,7 +179,7 @@ echo "[~] Mounting drives"
 sudo apt-get install pve-headers bcachefs-tools bcachefs-kernel-dkms snapraid mergerfs -yq > /dev/null
 # Reset fstab
 sudo sed -i 's/^.*swap.*$//' /etc/fstab
-sudo sed -i 's/^.*/mnt/.tieredDrive.*$//' /etc/fstab
+sudo sed -i 's/^.*\/mnt\/.tieredDrive.*$//' /etc/fstab
 
 # Mount disks
 echo "[*] Please ensure to have done your partitionning before the script execution. CTRL+C if that has not be done yet"
@@ -361,7 +361,6 @@ git clone https://github.com/hakavlad/nohang.git --quiet >/dev/null 2>/dev/null 
 sudo apt-get install ./deb/package.deb -yq > /dev/null
 sudo systemctl enable --now nohang-desktop.service 2>/dev/null
 cd $artifacts
-sudo rm -R nohang
 
 echo "[+] Mounting done"
 
@@ -406,6 +405,7 @@ if [[ $nologs ]];then options="$options -nl";fi
 if [[ $nounlock ]];then options="$options -nu";fi
 if [[ $virtu ]];then options="$options -v";fi
 if [[ $wlan ]]; then options="$options --wlan"; fi
+touch ~/.bash_profile
 if [[ ! "$wait" ]]; then echo "$artifacts/step2.sh $options" >> ~/.bash_profile; else echo "$artifacts/step2.sh $options" > ~/continue.sh; chmod +x ~/continue.sh; fi
 if [[ ! "$(grep -qE 'export TERM=xterm' ~/.bash_profile)" ]]; then echo 'export TERM=xterm' >> ~/.bash_profile; fi
 if [[ ! "$(grep -qE 'export TERM=xterm' ~/.profile)" ]]; then echo 'export TERM=xterm' >> ~/.profile; fi
