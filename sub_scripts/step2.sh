@@ -398,7 +398,7 @@ ROOT_PWD=$(openssl rand -hex 128)
 echo $ROOT_PWD | sudo tee /root/.virt_roots.pwd >/dev/null && sudo chmod 400 /root/.virt_roots.pwd && sudo chown root:root /root/.virt_roots.pwd
 
 ## Create Pfsense packer config, and deploy the firewall
-if [[ "$(sudo qm status 300 2>/dev/null)" ]]; then
+if [[ ! "$(sudo qm status 300 2>/dev/null)" ]]; then
 echo "[~] Creating firewall template"
 packer init pfsense.pkr.hcl >/dev/null
 if [[ ! "$virtu" ]]; then
@@ -406,7 +406,7 @@ if [[ ! "$virtu" ]]; then
 fi
 fi
 
-if [[ "$(sudo qm status 500 2/dev/null)" ]]; then
+if [[ ! "$(sudo qm status 500 2>/dev/null)" ]]; then
 echo "[~] Deploying firewall"
 terraform init >/dev/null
 echo '[]' | terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json -out plan >/dev/null
@@ -415,7 +415,8 @@ rm plan
 fi
 
 ## Create Packer template of alpine and deploy jenkins agent
-if [[ "$(sudo qm status 301 2>/dev/null)" ]]; then
+# TODO detect when packer does not its job well to auto redo
+if [[ ! "$(sudo qm status 301 2>/dev/null)" ]]; then
 echo "[~] Creating Alpine template"
 packer init alpine.pkr.hcl >/dev/null
 if [[ ! "$virtu" ]]; then
@@ -423,7 +424,7 @@ if [[ ! "$virtu" ]]; then
 fi
 fi
 
-if [[ ! "$(sudo qm status 501 2>/dev/null)" ]]; then
+if [[ "$(sudo qm status 501 2>/dev/null)" ]]; then
    echo "[~] Destroying old Jenkins agent"
    sudo qm shutdown 501
    sudo qm destroy 501
@@ -467,6 +468,8 @@ sudo apt-get -yq remove terraform packer >/dev/null 2>/dev/null
 sudo pip uninstall ansible -yq >/dev/null 2>/dev/null
 sudo rm /usr/share/keyrings/hashicorp-archive-keyring.gpg
 sudo rm /etc/apt/sources.list.d/tmp_hashicorp.list
+sudo rm -r $artifacts
+sudo rm ~/continue.sh
 
 sudo apt-get -yq autoremove >/dev/null 2>/dev/null
 fi
