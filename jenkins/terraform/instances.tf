@@ -55,4 +55,11 @@ resource "proxmox_vm_qemu" "instances" {
   ipconfig0 = "ip=10.1.${var.vms[count.index].network}.${var.vms[count.index].end_ip}/24,gw=10.1.${var.vms[count.index].network}.1"
 
   # TODO : PCI
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      clone, full_clone
+    ]
+  }
 }

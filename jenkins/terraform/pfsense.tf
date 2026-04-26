@@ -46,4 +46,11 @@ resource "proxmox_vm_qemu" "pfsense" {
       firewall = true
     }
   }
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      clone, full_clone
+    ]
+  }
 }
