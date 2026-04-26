@@ -412,14 +412,13 @@ fi
 
 echo "[~] Deploying firewall"
 terraform init >/dev/null
-if [[ ! "$(sudo qm status 500 2>/dev/null)" ]]; then
 echo '[]' | terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json -out plan >/dev/null
-if [[ ! "$virtu" ]]; then terraform apply "plan" >/dev/null; fi
-rm plan
+if [[ ! "$(sudo qm status 500 2>/dev/null)" ]]; then
+   if [[ ! "$virtu" ]]; then terraform apply "plan" >/dev/null; fi
 else
-echo "[~] Importing old PfSense in terraform state"
-terraform import --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json --var-file=complete.tfvars.json "proxmox_vm_qemu.pfsense" proxmox/qemu/500 >/dev/null 2>/dev/null
+   terraform import --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json --var-file=init.tfvars.json "proxmox_vm_qemu.pfsense" proxmox/qemu/500 >/dev/null 2>/dev/null
 fi
+rm plan
 
 ## Create Packer template of alpine and deploy jenkins agent
 # TODO detect when packer does not its job well to auto redo
