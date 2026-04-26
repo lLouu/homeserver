@@ -64,6 +64,26 @@ curl -s -b cookies.jar -u admin:$(sudo /bin/cat /var/lib/jenkins/secrets/initial
 </org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl>
 EOF
 
+## Storing proxmox id
+curl -s -b cookies.jar -u admin:$(sudo /bin/cat /var/lib/jenkins/secrets/initialAdminPassword) -X POST "http://localhost:8080/credentials/store/system/domain/_/createCredentials" -H "$CRUMB" -H "Content-Type: application/xml" --data-binary @- <<EOF
+<org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl plugin="plain-credentials@latest">
+  <scope>GLOBAL</scope>
+  <id>proxmox-id</id>
+  <description>Proxmox API token id</description>
+  <secret>$(sudo /bin/cat /var/lib/jenkins/.tmp/proxmox.tfvars.json | grep 'token_id' | cut -d'"' -f4)</secret>
+</org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl>
+EOF
+
+## Storing proxmox secret
+curl -s -b cookies.jar -u admin:$(sudo /bin/cat /var/lib/jenkins/secrets/initialAdminPassword) -X POST "http://localhost:8080/credentials/store/system/domain/_/createCredentials" -H "$CRUMB" -H "Content-Type: application/xml" --data-binary @- <<EOF
+<org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl plugin="plain-credentials@latest">
+  <scope>GLOBAL</scope>
+  <id>proxmox-secret</id>
+  <description>Proxmox API token secret</description>
+  <secret>$(sudo /bin/cat /var/lib/jenkins/.tmp/proxmox.tfvars.json | grep 'token_secret' | cut -d'"' -f4)</secret>
+</org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl>
+EOF
+
 rm cookies.jar
 fi
 

@@ -43,7 +43,7 @@ pipeline {
 
          stage('Packer Builds') {
             steps {
-               withCredentials([string(credentialsId: 'root-password', variable: 'ROOT_PWD'), file(credentialsId: 'proxmox-tfvars', variable: 'PROXMOX_TFVARS')]) {
+               withCredentials([string(credentialsId: 'proxmox-id', variable: 'PROXMOX_ID'), string(credentialsId: 'proxmox-secret', variable: 'PROXMOX_SECRET'), string(credentialsId: 'root-password', variable: 'ROOT_PWD'), file(credentialsId: 'proxmox-tfvars', variable: 'PROXMOX_TFVARS')]) {
                      script {
                         dir("work") {
                            def files = sh(script: "ls *.pkr.hcl", returnStdout: true).trim().split()
@@ -51,9 +51,9 @@ pipeline {
                               env.WORKING_FILE = file
                               sh '''
                                  if curl -sk \
-                                 -H "Authorization: PVEAPIToken=$(cat $PROXMOX_TFVARS | grep 'token_id' | cut -d'\"' -f4)=$(cat $PROXMOX_TFVARS | grep 'token_secret' | cut -d'\"' -f4)" \
-                                 https://10.1.3.10:8006/api2/json/nodes/proxmox/qemu/$(cat $WORKING_FILE | grep vm_id | cut -d'\"' -f2)/status/current \
-                                 | grep 'not exist'" >/dev/null; then
+                                 -H "Authorization: PVEAPIToken=$PROXMOX_ID=$PROXMOX_SECRET" \
+                                 https://10.1.3.10:8006/api2/json/nodes/proxmox/qemu/$(cat $WORKING_FILE | grep vm_id | cut -d'"' -f2)/status/current \
+                                 | grep 'not exist' >/dev/null; then
                                     packer init $WORKING_FILE
                                     packer build -var-file="$PROXMOX_TFVARS" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
                                  fi
@@ -67,9 +67,24 @@ pipeline {
 
          stage('Terraform Apply') {
             steps {
-               withCredentials([file(credentialsId: 'proxmox-tfvars', variable: 'PROXMOX_TFVARS')]) {
+               withCredentials([string(credentialsId: 'proxmox-id', variable: 'PROXMOX_ID'), string(credentialsId: 'proxmox-secret', variable: 'PROXMOX_SECRET'),file(credentialsId: 'proxmox-tfvars', variable: 'PROXMOX_TFVARS')]) {
                      dir("work") {
                         sh '''
+                           curl -sk \
+                              -H "Authorization: PVEAPIToken=$PROXMOX_ID=$PROXMOX_SECRET" \
+                              https://10.1.3.10:8006/api2/json/nodes/proxmox/qemu/ \
+                              | jq '.data[].vmid' > existing.dat
+                           jq -r '.vms[].id' complete.tfvars.json > managed.dat
+                           terraform state list | grep proxmox_vm_qemu.instances | sed -E 's/.*\[([0-9]+)\]/\1/' > state.dat
+                           for vmid in $(curl -sk -H "Authorization: PVEAPIToken=$PROXMOX_ID=$PROXMOX_SECRET" https://10.1.3.10:8006/api2/json/nodes/proxmox/qemu/ | jq '.data[].vmid'); do
+                              index=$(grep -n -w "$vmid" managed.dat | cut -d: -f1)
+                              if [[ ! "$(cat state.dat | grep $index)" ]]; then
+                                 terraform import "proxmox_vm_qemu.instances[$index]" proxmox/qemu/$vmid
+                              fi
+                           done
+                           if [[ ! "$(terraform state list | grep proxmox_vm_qemu.pfsense)" ]]; then
+                              terraform import "proxmox_vm_qemu.pfsense" proxmox/qemu/500
+                           fi
                            terraform init
                            terraform plan --var-file=$PROXMOX_TFVARS --var-file=pfsense.tfvars.json --var-file=complete.tfvars.json -out plan
                            terraform apply -auto-approve plan
