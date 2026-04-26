@@ -40,14 +40,6 @@
       mode: 0744
       owner: jenkins
       group: jenkins
-  - name: Prepare caching
-    become: yes
-    file:
-      path: /var/lib/jenkins/.cache_homeserver_build
-      state: touch
-      mode: 0744
-      owner: jenkins
-      group: jenkins
   - name: Create .ssh folder
     become: yes
     file:

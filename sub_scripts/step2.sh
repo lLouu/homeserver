@@ -437,7 +437,7 @@ if [[ ! "$virtu" ]]; then terraform apply "plan" >/dev/null; fi
 rm plan
 
 ## Create remote ansible user
-if [[ "$(id -u ansible >/dev/null)" ]]; then
+if [[ ! "$(id -u ansible 2>/dev/null)" ]]; then
 sudo apt-get install ssh -yq >/dev/null
 sudo adduser ansible --disabled-password --gecos "" --quiet >/dev/null 2>/dev/null
 sudo sed -i 's/ansible:!/ansible:*/' /etc/shadow
@@ -459,6 +459,7 @@ echo 'ansible ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/ansible >/dev/n
 fi
 
 ## Connect with ansible to setup jenkins for it to handle the other Packer and terraform edits
+sleep 10
 ansible-playbook -i hosts.yml -u ansible --key-file ansible preinstall.yml -e "branch='$branch' repository='$repository' ssh_priv='$(cat ansible)' ssh_pub='$(cat ansible.pub)' proxmox_config='$(cat proxmox.tfvars.json)' root_pwd='$ROOT_PWD'"
 
 cd $artifacts

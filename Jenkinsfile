@@ -13,7 +13,6 @@ pipeline {
                      env.BRANCH = readFile('/var/lib/jenkins/.branch').trim()
                      env.REPOSITORY = readFile('/var/lib/jenkins/.repository').trim()
                      env.ANSIBLE_PUB = readFile('/var/lib/jenkins/.ssh/id_rsa.pub').trim()
-                     env.CACHE = readFile('/var/lib/jenkins/.cache_homeserver_build').trim()
                }
             }
          }
@@ -34,6 +33,9 @@ pipeline {
                         cp -r jenkins/configs/* work/
                         cp -r jenkins/terraform/* work/
                         cp -r jenkins/packer/* work/
+
+                        mkdir -p work/http
+                        echo "$ANSIBLE_PUB" > work/http/ansible.pub
                      '''
                }
             }
@@ -43,29 +45,21 @@ pipeline {
             steps {
                withCredentials([string(credentialsId: 'root-password', variable: 'ROOT_PWD'), file(credentialsId: 'proxmox-tfvars', variable: 'PROXMOX_TFVARS')]) {
                      script {
-                     def packerDir = "work"
-                     def executedFile = "${packerDir}/.executed_packer"
-                     sh "touch ${executedFile}"
-
-                     def ignored = sh(script: 'echo "$CACHE"', returnStdout: true).trim().split()
-                     def files = sh(script: "ls ${packerDir}/*.pkr.hcl", returnStdout: true).trim().split()
-
-                     for (file in files) {
-                        def base = file.tokenize('/').last()
-                        if (!(base in ignored)) {
-                           if (!readFile(executedFile).contains(base)) {
-                                 env.WORKING_FILE = file
-                                 sh '''
+                        dir("work") {
+                           def files = sh(script: "ls *.pkr.hcl", returnStdout: true).trim().split()
+                           for (file in files) {
+                              env.WORKING_FILE = file
+                              sh '''
+                                 if curl -sk \
+                                 -H "Authorization: PVEAPIToken=$(cat $PROXMOX_TFVARS | grep 'token_id' | cut -d'"' -f4)=$(cat $PROXMOX_TFVARS | grep 'token_secret' | cut -d'"' -f4)" \
+                                 https://10.1.3.10:8006/api2/json/nodes/proxmox/qemu/$(cat $WORKING_FILE | grep vm_id | cut -d'"' -f2)/status/current \
+                                 | grep 'not exist'" >/dev/null; then
                                     packer init $WORKING_FILE
-                                    packer build -var-file="$PROXMOX_TFVARS" -var "ansible_pub=$ANSIBLE_PUB" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
-                                    echo ${base} >> ${executedFile}
-                                 '''
-
+                                    packer build -var-file="$PROXMOX_TFVARS" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
+                                 fi
+                              '''
                            }
                         }
-                     }
-                     def newCache = sh(script: 'echo "$CACHE" && cat ${executedFile}', returnStdout: true).trim()
-                     writeFile file: "/var/lib/jenkins/.cache_homeserver_build", text: newCache
                      }
                }
             }
