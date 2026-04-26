@@ -417,7 +417,8 @@ echo '[]' | terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfv
 if [[ ! "$virtu" ]]; then terraform apply "plan" >/dev/null; fi
 rm plan
 else
-terraform import "proxmox_vm_qemu.pfsense" proxmox/qemu/500 >/dev/null 2>/dev/null
+echo "[~] Importing old PfSense in terraform state"
+terraform import --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json --var-file=complete.tfvars.json "proxmox_vm_qemu.pfsense" proxmox/qemu/500 >/dev/null 2>/dev/null
 fi
 
 ## Create Packer template of alpine and deploy jenkins agent
