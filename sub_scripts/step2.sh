@@ -410,9 +410,9 @@ if [[ ! "$virtu" ]]; then
 fi
 fi
 
-if [[ ! "$(sudo qm status 500 2>/dev/null)" ]]; then
 echo "[~] Deploying firewall"
 terraform init >/dev/null
+if [[ ! "$(sudo qm status 500 2>/dev/null)" ]]; then
 echo '[]' | terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json -out plan >/dev/null
 if [[ ! "$virtu" ]]; then terraform apply "plan" >/dev/null; fi
 rm plan
