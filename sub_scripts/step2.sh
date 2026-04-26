@@ -428,6 +428,7 @@ if [[ "$(sudo qm status 501 2>/dev/null)" ]]; then
    echo "[~] Destroying old Jenkins agent"
    sudo qm shutdown 501
    sudo qm destroy 501
+   rm ~/.ssh/known_hosts
 fi
 echo "[~] Deploying Jenkins agent"
 terraform init >/dev/null
