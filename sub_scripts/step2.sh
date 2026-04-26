@@ -437,7 +437,6 @@ if [[ "$(sudo qm status 501 2>/dev/null)" ]]; then
    rm ~/.ssh/known_hosts
 fi
 echo "[~] Deploying Jenkins agent"
-terraform init >/dev/null
 terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json --var-file=init.tfvars.json -out plan >/dev/null
 if [[ ! "$virtu" ]]; then terraform apply "plan" >/dev/null; fi
 rm plan

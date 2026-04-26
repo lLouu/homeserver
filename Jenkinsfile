@@ -75,6 +75,7 @@ pipeline {
                               if [[ "$vmid" == "500" && ! "$(terraform state list | grep proxmox_vm_qemu.pfsense)" ]]; then terraform import --var-file=$PROXMOX_TFVARS --var-file=pfsense.tfvars.json --var-file=complete.tfvars.json "proxmox_vm_qemu.pfsense" proxmox/qemu/500
                               else
                                  index=$(grep -n -w "$vmid" managed.dat | cut -d: -f1)
+                                 index=$(( index - 1 ))
                                  if [[ "$index" && ! "$(terraform state list | grep proxmox_vm_qemu.instances\\\\[$index\\\\])" ]]; then
                                     terraform import --var-file=$PROXMOX_TFVARS --var-file=pfsense.tfvars.json --var-file=complete.tfvars.json "proxmox_vm_qemu.instances[$index]" proxmox/qemu/$vmid
                                  fi
