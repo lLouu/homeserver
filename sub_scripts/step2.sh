@@ -394,8 +394,12 @@ else
 fi
 mkdir http
 cp ansible.pub ./http/
-ROOT_PWD=$(openssl rand -hex 128)
-echo $ROOT_PWD | sudo tee /root/.virt_roots.pwd >/dev/null && sudo chmod 400 /root/.virt_roots.pwd && sudo chown root:root /root/.virt_roots.pwd
+if [[ -f /root/.virt_roots.pwd ]]; then
+   ROOT_PWD=$(sudo cat /root/.virt_roots.pwd)
+else
+   ROOT_PWD=$(openssl rand -hex 128)
+   echo $ROOT_PWD | sudo tee /root/.virt_roots.pwd >/dev/null && sudo chmod 400 /root/.virt_roots.pwd && sudo chown root:root /root/.virt_roots.pwd
+fi
 
 ## Create Pfsense packer config, and deploy the firewall
 if [[ ! "$(sudo qm status 300 2>/dev/null)" ]]; then
@@ -412,6 +416,8 @@ terraform init >/dev/null
 echo '[]' | terraform plan --var-file=proxmox.tfvars.json --var-file=pfsense.tfvars.json -out plan >/dev/null
 if [[ ! "$virtu" ]]; then terraform apply "plan" >/dev/null; fi
 rm plan
+else
+terraform import "proxmox_vm_qemu.pfsense" proxmox/qemu/500 >/dev/null 2>/dev/null
 fi
 
 ## Create Packer template of alpine and deploy jenkins agent
