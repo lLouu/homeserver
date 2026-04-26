@@ -170,7 +170,7 @@ if [[ ! "$(sudo dkms status | grep nvidia/$version)" ]]; then
 fi
 fi
 
-if [[ ! "$virtu" ]]; then
+if [[ ! "$virtu" && ! -f "/etc/network/interfaces.d/bridges" ]]; then
 ## Create network bridges and network configuration
 WAN=$(sudo cat /etc/network/interfaces | grep 'dhcp' | awk '{print($2)}')
 if [[ ! "$WAN" ]]; then WAN=$(nmcli device status | grep " connected " | awk '{print($1)}' | head -n1); fi
