@@ -304,21 +304,6 @@ echo "[+] API setted up"
 echo "[>] The terraform user password is '$NEW_PASS'"
 
 if [[ ! "$virtu" ]]; then
-   # Download ISO store on /var/lib/vz/template/iso/
-   echo "[~] Downloading ISO Librarie"
-   ## Alpine
-   if [[ ! -f "/var/lib/vz/template/iso/alpine-virt-3.22.1-x86_64.iso" || "$(sha256sum /var/lib/vz/template/iso/alpine-virt-3.22.1-x86_64.iso | awk '{print($1)}')" != "42918974513750a6923393f3074c3bb226badfce4a0d0f35f90377fd789fda1f" ]]; then
-      echo "[~] Downloading Alpine ISO"
-      wget https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-virt-3.22.1-x86_64.iso -q > /dev/null
-      if [[ "$(sha256sum alpine-virt-3.22.1-x86_64.iso | awk '{print($1)}')" != "42918974513750a6923393f3074c3bb226badfce4a0d0f35f90377fd789fda1f" ]]; then
-         echo "[!] Could not download Alpine ISO"
-         rm alpine-virt-3.22.1-x86_64.iso
-      else
-         sudo mv alpine-virt-3.22.1-x86_64.iso /var/lib/vz/template/iso/alpine-virt-3.22.1-x86_64.iso
-         echo "[+] Alpine ISO added to ISO local library"
-      fi
-   fi
-
    ## Pfsense
    if [[ ! -f "/var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso" || "$(sha256sum /var/lib/vz/template/iso/pfSense-CE-2.7.2-RELEASE-amd64.iso | awk '{print($1)}')" != "441005f79ea0c155bc4b830a2b4207f8c0804cf7b075d2a6489c0a136cbc5d51" ]]; then
       echo "[~] Downloading Pfsense ISO"

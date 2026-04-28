@@ -25,7 +25,7 @@ variable "root_pwd" {
 }
 
 
-source "proxmox-iso" "alpine-ansible-ready" {
+source "proxmox-iso" "ubuntu-ansible-ready" {
 
     # Proxmox Connection Settings
     proxmox_url = "${var.proxmox.api.url}"
@@ -45,7 +45,7 @@ source "proxmox-iso" "alpine-ansible-ready" {
 
     # Behaviour
     boot            = "c"
-    boot_wait       = "50s"
+    boot_wait       = "10s"
     scsi_controller = "virtio-scsi-pci"
     qemu_agent      = true
 
@@ -72,18 +72,22 @@ source "proxmox-iso" "alpine-ansible-ready" {
 
     # PACKER Boot Commands
     http_directory = "http"
-    boot_command = ["<esc><wait>",
-        "<enter><wait><enter><wait><up><up><space><down><down><enter><wait><enter><wait><enter><wait><enter><wait>",
-        "<down><down><down><down><down><enter><wait><enter><wait><enter><wait><down><enter><wait>",
-        "ubuntu<down>ubuntu<down>ubuntu<down>${var.root_pwd}<down>${var.root_pwd}<down><enter><wait>",
-        "<enter><wait><space><down><down><enter><wait>",
-        "<wait5><wait5><wait5><wait5>",
-        "<down><down><enter><wait>",
+    boot_command = [
+        "<enter><wait5><wait5><wait5><wait5>",
+        "<enter><wait><enter><wait><up><wait><up><wait><space><wait><down><wait><down><wait><enter><wait5>",
+        "<enter><wait><enter><wait5><enter><wait>",
+        "<down><wait><down><wait><down><wait><down><wait><down><wait><enter><wait><enter><wait><down><wait><enter><wait>",
+        "ubuntu<down><wait>ubuntu<down><wait>ubuntu<down><wait>${var.root_pwd}<down><wait>${var.root_pwd}<down><wait><enter><wait>",
+        "<enter><wait><space><wait><down><wait><down><wait><enter><wait>",
+        "<down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait>",
+        "<down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait>",
+        "<enter><wait5><wait5><wait5><wait5>",
+        "<down><wait><down><wait><enter><wait><enter><wait>",
         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-        "<enter>ubuntu<enter><wait>${var.root_pwd}<enter><wait5>"
+        "<enter><wait>ubuntu<enter><wait>${var.root_pwd}<enter><wait5>",
 
-        "sudo adduser --shell /bin/sh ansible --disabled-password --quiet<enter><wait>",
-        "${var.root_pwd}<enter><wait>",
+        "sudo adduser --shell /bin/sh ansible --disabled-password<enter><wait>",
+        "${var.root_pwd}<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait>",
         "sudo sed -i 's/ansible:!/ansible:*/' /etc/shadow<enter><wait>",
         "sudo mkdir /home/ansible/.ssh<enter><wait>",
         "sudo wget http://{{ .HTTPIP }}:{{ .HTTPPort }}/ansible.pub -O /home/ansible/.ssh/authorized_keys<enter><wait5>",
