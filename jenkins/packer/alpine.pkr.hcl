@@ -51,10 +51,11 @@ source "proxmox-iso" "alpine-ansible-ready" {
 
     # VM OS Settings
     boot_iso {
-        type         = "scsi"
-        iso_file     = "local:iso/alpine-virt-3.22.1-x86_64.iso"
-        unmount      = true
-        iso_checksum = "42918974513750a6923393f3074c3bb226badfce4a0d0f35f90377fd789fda1f"
+        type             = "scsi"
+        iso_url          = "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-virt-3.22.1-x86_64.iso"
+        unmount          = true
+        iso_storage_pool = "local"
+        iso_checksum     = "42918974513750a6923393f3074c3bb226badfce4a0d0f35f90377fd789fda1f"
     }
 
     # VM System Settings
@@ -62,6 +63,7 @@ source "proxmox-iso" "alpine-ansible-ready" {
         type              = "scsi"
         disk_size         = "20G"
         storage_pool      = "local"
+        format            = "qcow2"
     }
     network_adapters {
         model    = "virtio"

@@ -62,6 +62,7 @@ source "proxmox-iso" "pfsense-ansible-ready" {
         type              = "scsi"
         disk_size         = "20G"
         storage_pool      = "local"
+        format            = "qcow2"
     }
     dynamic "network_adapters" {
         for_each = var.networks
