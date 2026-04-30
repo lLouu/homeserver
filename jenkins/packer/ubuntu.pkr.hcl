@@ -73,16 +73,20 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
     # PACKER Boot Commands
     http_directory = "http"
     boot_command = [
-        "<enter><wait5><wait5><wait5><wait5>",
-        "<enter><wait><enter><wait><up><wait><up><wait><space><wait><down><wait><down><wait><enter><wait5>",
-        "<enter><wait><enter><wait5><enter><wait>",
+        "<enter><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<enter><wait><enter><wait><up><wait><up><wait><enter><wait><down><wait><down><wait><enter><wait5>",
+        "<enter><wait><enter><wait5><wait5><enter><wait>",
         "<down><wait><down><wait><down><wait><down><wait><down><wait><enter><wait><enter><wait><down><wait><enter><wait>",
         "ubuntu<down><wait>ubuntu<down><wait>ubuntu<down><wait>${var.root_pwd}<down><wait>${var.root_pwd}<down><wait><enter><wait>",
-        "<enter><wait><space><wait><down><wait><down><wait><enter><wait>",
+        "<enter><wait><enter><wait><down><wait><down><wait><enter><wait>",
         "<down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait>",
         "<down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait>",
-        "<enter><wait5><wait5><wait5><wait5>",
-        "<down><wait><down><wait><enter><wait><enter><wait>",
+        "<enter><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<down><wait><down><wait><enter><wait5><wait5><enter><wait>",
         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "<enter><wait>ubuntu<enter><wait>${var.root_pwd}<enter><wait5>",
 
@@ -91,19 +95,22 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
         "sudo sed -i 's/ansible:!/ansible:*/' /etc/shadow<enter><wait>",
         "sudo mkdir /home/ansible/.ssh<enter><wait>",
         "sudo wget http://{{ .HTTPIP }}:{{ .HTTPPort }}/ansible.pub -O /home/ansible/.ssh/authorized_keys<enter><wait5>",
-        "sudo chmod 700 /home/ansible/.ssh && chmod 600 /home/ansible/.ssh/authorized_keys<enter><wait>",
+        "sudo chmod 700 /home/ansible/.ssh && sudo chmod 600 /home/ansible/.ssh/authorized_keys<enter><wait>",
         "sudo chown ansible:ansible /home/ansible/.ssh /home/ansible/.ssh/authorized_keys<enter><wait>",
         "cat | sudo tee /etc/ssh/sshd_config.d/first_setup.conf >/dev/null <<EOF<enter>Port 22<enter>Protocol 2<enter>PermitRootLogin no<enter>PasswordAuthentication no<enter>PubkeyAuthentication yes<enter>ChallengeResponseAuthentication no<enter>EOF<enter><wait>",
-        "sudo systemctl restart sshd.service<enter><wait>",
+        "sudo systemctl restart sshd.service<enter><wait5>",
         
-         "sudo apt-get update && sudo apt-get install cloud-init util-linux qemu-guest-agent e2fsprogs-extra<enter><wait>",
-         "<wait5><wait5><wait5><wait5><wait5><wait5>",
-         "echo 'ansible ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/ansible >/dev/null<enter><wait>",
-         "sudo chmod 440 /etc/sudoers.d/ansible && sudo chown root:root /etc/sudoers.d/ansible<enter><wait>",
-         "echo 'datasource_list: [ NoCloud, ConfigDrive ]' | sudo tee /etc/cloud/cloud.cfg.d/02-datasource.cfg >/dev/null<enter><wait>",
-         "setup-cloud-init<enter><wait>",
+        "sudo sed -i \"s/$(sudo cat /etc/netplan/00-installer-config.yaml | grep macaddress | awk '{print($2)}')/$(ip a | grep link/ether | awk '{print($2)}')/\" /etc/netplan/00-installer-config.yaml",
+        "sudo netplan apply",
+        "sudo apt-get update && sudo apt-get install qemu-guest-agent -y<enter><wait>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5>",
+        "echo 'WantedBy=multi-user.target' | sudo tee -a /usr/lib/systemd/system/qemu-guest-agent.service<enter><wait>",
+        "sudo systemctl enable qemu-guest-agent.service<enter><wait>",
+        "echo 'ansible ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/ansible >/dev/null<enter><wait>",
+        "sudo chmod 440 /etc/sudoers.d/ansible && sudo chown root:root /etc/sudoers.d/ansible<enter><wait>",
+        "echo 'datasource_list: [ NoCloud, ConfigDrive ]' | sudo tee /etc/cloud/cloud.cfg.d/02-datasource.cfg >/dev/null<enter><wait>",
 
-         "sudo systemctl poweroff<enter><wait>"
+        "sudo systemctl poweroff<enter><wait>"
     ]
     
     # VM Cloud-Init Settings
