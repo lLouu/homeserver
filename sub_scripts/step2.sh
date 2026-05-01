@@ -288,6 +288,8 @@ for line in "${lines[@]}"; do
 done
 
 ### store secrets
+sudo sed -i '/terraform/d' /etc/pve/priv/shadow.cfg
+sudo sed -i '/terraform/d' /etc/pve/priv/token.cfg
 echo "terraform:$HASHED_PASS:" | sudo tee -a /etc/pve/priv/shadow.cfg > /dev/null
 echo "terraform@pve!$TOKEN_ID $TOKEN_SECRET" | sudo tee -a /etc/pve/priv/token.cfg > /dev/null
 
@@ -415,6 +417,18 @@ if [[ ! "$virtu" ]]; then
 fi
 fi
 
+if [[ "$wlan" ]]; then 
+   for WORKING_FILE in $(ls *.pkr.hcl); do
+      if curl -sk \
+      -H "Authorization: PVEAPIToken=terraform@pve!$TOKEN_ID=$TOKEN_SECRET" \
+      https://10.1.3.10:8006/api2/json/nodes/proxmox/qemu/$(cat $WORKING_FILE | grep vm_id | cut -d'"' -f2)/status/current \
+      | grep 'not exist' >/dev/null; then
+         packer init $WORKING_FILE
+         packer build -var-file="proxmox.tfvars.json" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
+      fi
+   done
+fi
+
 if [[ "$(sudo qm status 501 2>/dev/null)" ]]; then
    echo "[~] Destroying old Jenkins agent"
    sudo qm shutdown 501
@@ -449,7 +463,7 @@ echo 'ansible ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/ansible >/dev/n
 fi
 
 ## Connect with ansible to setup jenkins for it to handle the other Packer and terraform edits
-sleep 10
+sleep 30
 ansible-playbook -i hosts.yml -u ansible --key-file ansible preinstall.yml -e "branch='$branch' repository='$repository' ssh_priv='$(cat ansible)' ssh_pub='$(cat ansible.pub)' proxmox_config='$(cat proxmox.tfvars.json)' root_pwd='$ROOT_PWD'"
 
 cd $artifacts
