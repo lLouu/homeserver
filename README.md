@@ -5,7 +5,7 @@ Homeserver is an automation script to convert a machine in a self-hosted proxmox
 
 ## Preparation
 On your server, install debian, preferablly without gui. Do the partitionning depending on your drives. Here is some guidelines for it :
-- Use a 20G partition for the OS
+- Use a 50G partition for the OS
 - NVMe should be used for the swap, and if SSD caching before real SSDs. It may also be used as hot storage, with SSD or HDD as cold storage behind
 - SSD should be mostly used for hot storage. Swap may be also be considered if you have no NVMe
 - HDD should be used for parity, and cold storage
