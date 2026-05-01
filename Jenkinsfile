@@ -55,7 +55,7 @@ pipeline {
                                  https://10.1.3.10:8006/api2/json/nodes/proxmox/qemu/$(cat $WORKING_FILE | grep vm_id | cut -d'"' -f2)/status/current \
                                  | grep 'not exist' >/dev/null; then
                                     packer init $WORKING_FILE
-                                    packer build -var-file="$PROXMOX_TFVARS" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
+                                    PACKER_GETTER_READ_TIMEOUT="8h" packer build -var-file="$PROXMOX_TFVARS" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
                                  fi
                               '''
                            }

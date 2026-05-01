@@ -87,7 +87,7 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-        "<down><wait><down><wait><enter><wait5><wait5><enter><wait>",
+        "<down><wait><down><wait><enter><wait><down><wait><down><wait><enter><wait5><wait5><enter><wait>",
         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "<enter><wait>ubuntu<enter><wait>${var.root_pwd}<enter><wait5>",
 
@@ -103,6 +103,7 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
         
         "sudo sed -i '/match/d' /etc/netplan/00-installer-config.yaml<enter><wait>",
         "sudo sed -i '/macaddress/d' /etc/netplan/00-installer-config.yaml<enter><wait>",
+        "sudo sed -i '/set-name/d' /etc/netplan/00-installer-config.yaml<enter><wait>",
         "sudo netplan apply<enter><wait>",
         "sudo apt-get update && sudo apt-get install qemu-guest-agent -y<enter><wait>",
         "<wait5><wait5><wait5><wait5><wait5><wait5>",

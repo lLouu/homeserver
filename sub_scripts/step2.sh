@@ -418,17 +418,17 @@ fi
 fi
 
 if [[ "$wlan" ]]; then 
-   if [[ -d "$artifacts/isos" ]]; then mv $artifacts/isos downloaded_iso_path; fi
+   mkdir -p $artifacts/isos;
+   ln -s $artifacts/isos downloaded_iso_path
    for WORKING_FILE in $(ls *.pkr.hcl); do
       if curl -sk \
       -H "Authorization: PVEAPIToken=terraform@pve!$TOKEN_ID=$TOKEN_SECRET" \
       https://10.1.3.10:8006/api2/json/nodes/proxmox/qemu/$(cat $WORKING_FILE | grep vm_id | cut -d'"' -f2)/status/current \
       | grep 'not exist' >/dev/null; then
          packer init $WORKING_FILE
-         packer build -var-file="proxmox.tfvars.json" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
+         PACKER_GETTER_READ_TIMEOUT="8h" packer build -var-file="proxmox.tfvars.json" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
       fi
    done
-   mv downloaded_iso_path $artifacts/isos
 fi
 
 if [[ "$(sudo qm status 501 2>/dev/null)" ]]; then
