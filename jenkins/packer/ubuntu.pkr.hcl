@@ -39,13 +39,13 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
     vm_name              = "ubuntu-ansible-ready"
 
     # Ressources
-    memory      = 4096
-    sockets     = 1
+    memory      = 6144
+    sockets     = 2
     cores       = 2
 
     # Behaviour
     boot            = "c"
-    boot_wait       = "10s"
+    boot_wait       = "5s"
     scsi_controller = "virtio-scsi-pci"
     qemu_agent      = true
 
@@ -62,7 +62,7 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
     disks {
         type              = "scsi"
         disk_size         = "25G"
-        storage_pool      = "local"
+        storage_pool      = "content"
         format            = "qcow2"
     }
     network_adapters {
@@ -73,10 +73,10 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
     # PACKER Boot Commands
     http_directory = "http"
     boot_command = [
-        "<enter><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<enter><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "<enter><wait><enter><wait><up><wait><up><wait><enter><wait><down><wait><down><wait><enter><wait5>",
-        "<enter><wait><enter><wait5><wait5><enter><wait>",
-        "<down><wait><down><wait><down><wait><down><wait><down><wait><enter><wait><enter><wait><down><wait><enter><wait>",
+        "<enter><wait><enter><wait5><wait5><enter><wait5>",
+        "<down><wait><down><wait><enter><wait><down><wait><down><wait><enter><wait><enter><wait><down><wait><enter><wait>",
         "ubuntu<down><wait>ubuntu<down><wait>ubuntu<down><wait>${var.root_pwd}<down><wait>${var.root_pwd}<down><wait><enter><wait>",
         "<enter><wait><enter><wait><down><wait><down><wait><enter><wait>",
         "<down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait>",
