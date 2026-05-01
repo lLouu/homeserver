@@ -4,7 +4,7 @@ sudo /usr/bin/wget http://localhost:8080/jnlpJars/jenkins-cli.jar -O /tmp/jenkin
 CLI="java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(sudo /bin/cat /var/lib/jenkins/secrets/initialAdminPassword)"
 
 ## Setup jenkins url
-cat | sudo /usr/bin/tee /var/lib/jenkins/jenkins.model.JenkinsLocationConfiguration.xml >/dev/null <<EOF
+sudo /usr/bin/tee /var/lib/jenkins/jenkins.model.JenkinsLocationConfiguration.xml >/dev/null <<EOF
 <?xml version='1.1' encoding='UTF-8'?>
 <jenkins.model.JenkinsLocationConfiguration>
   <jenkinsUrl>http://localhost:8080/</jenkinsUrl>
