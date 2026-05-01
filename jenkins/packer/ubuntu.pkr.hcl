@@ -75,7 +75,7 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
     boot_command = [
         "<enter><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "<enter><wait><enter><wait><up><wait><up><wait><enter><wait><down><wait><down><wait><enter><wait5>",
-        "<enter><wait><enter><wait5><wait5><enter><wait5>",
+        "<enter><wait><enter><wait5><wait5><enter><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "<down><wait><down><wait><enter><wait><down><wait><down><wait><enter><wait><enter><wait><down><wait><enter><wait>",
         "ubuntu<down><wait>ubuntu<down><wait>ubuntu<down><wait>${var.root_pwd}<down><wait>${var.root_pwd}<down><wait><enter><wait>",
         "<enter><wait><enter><wait><down><wait><down><wait><enter><wait>",

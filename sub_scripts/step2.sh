@@ -418,7 +418,7 @@ fi
 fi
 
 if [[ "$wlan" ]]; then 
-   if [[ -d "$artifacts/isos" ]]; then cp -R $artifacts/isos $artifacts/homeserver/jenkins/terraform/downloaded_iso_path; fi
+   if [[ -d "$artifacts/isos" ]]; then mv $artifacts/isos downloaded_iso_path; fi
    for WORKING_FILE in $(ls *.pkr.hcl); do
       if curl -sk \
       -H "Authorization: PVEAPIToken=terraform@pve!$TOKEN_ID=$TOKEN_SECRET" \
@@ -428,7 +428,7 @@ if [[ "$wlan" ]]; then
          packer build -var-file="proxmox.tfvars.json" -var "root_pwd=$ROOT_PWD" $WORKING_FILE
       fi
    done
-   cp -R $artifacts/homeserver/jenkins/terraform/downloaded_iso_path $artifacts/isos
+   mv downloaded_iso_path $artifacts/isos
 fi
 
 if [[ "$(sudo qm status 501 2>/dev/null)" ]]; then
