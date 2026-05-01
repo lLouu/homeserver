@@ -62,7 +62,7 @@ source "proxmox-iso" "alpine-ansible-ready" {
     disks {
         type              = "scsi"
         disk_size         = "2G"
-        storage_pool      = "content"
+        storage_pool      = "local"
         format            = "qcow2"
     }
     network_adapters {

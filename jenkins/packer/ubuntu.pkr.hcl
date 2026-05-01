@@ -61,8 +61,8 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
     # VM System Settings
     disks {
         type              = "scsi"
-        disk_size         = "25G"
-        storage_pool      = "content"
+        disk_size         = "10G"
+        storage_pool      = "local"
         format            = "qcow2"
     }
     network_adapters {
