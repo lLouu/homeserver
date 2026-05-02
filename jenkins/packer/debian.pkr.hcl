@@ -105,10 +105,6 @@ source "proxmox-iso" "debian-ansible-ready" {
         "cat | sudo tee /etc/ssh/sshd_config.d/first_setup.conf >/dev/null <<EOF<enter>Port 22<enter>Protocol 2<enter>PermitRootLogin no<enter>PasswordAuthentication no<enter>PubkeyAuthentication yes<enter>ChallengeResponseAuthentication no<enter>EOF<enter><wait>",
         "sudo systemctl restart sshd.service<enter><wait5>",
         
-        "sudo sed -i '/match/d' /etc/netplan/00-installer-config.yaml<enter><wait>",
-        "sudo sed -i '/macaddress/d' /etc/netplan/00-installer-config.yaml<enter><wait>",
-        "sudo sed -i '/set-name/d' /etc/netplan/00-installer-config.yaml<enter><wait>",
-        "sudo netplan apply<enter><wait>",
         "sudo apt-get update && sudo apt-get install qemu-guest-agent -y<enter><wait>",
         "<wait5><wait5><wait5><wait5><wait5><wait5>",
         "echo 'WantedBy=multi-user.target' | sudo tee -a /usr/lib/systemd/system/qemu-guest-agent.service<enter><wait>",
