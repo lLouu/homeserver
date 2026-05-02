@@ -60,7 +60,7 @@ source "proxmox-iso" "pfsense-ansible-ready" {
     # VM System Settings
     disks {
         type              = "scsi"
-        disk_size         = "10G"
+        disk_size         = "8G"
         storage_pool      = "local"
         format            = "qcow2"
     }

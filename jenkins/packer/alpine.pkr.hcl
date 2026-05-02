@@ -61,7 +61,7 @@ source "proxmox-iso" "alpine-ansible-ready" {
     # VM System Settings
     disks {
         type              = "scsi"
-        disk_size         = "2G"
+        disk_size         = "3G"
         storage_pool      = "local"
         format            = "qcow2"
     }

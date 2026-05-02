@@ -25,7 +25,7 @@ variable "root_pwd" {
 }
 
 
-source "proxmox-iso" "ubuntu-ansible-ready" {
+source "proxmox-iso" "debian-ansible-ready" {
 
     # Proxmox Connection Settings
     proxmox_url = "${var.proxmox.api.url}"
@@ -35,13 +35,13 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
 
     # VM General Settings
     node                 = var.proxmox.node
-    vm_id                = "302"
-    vm_name              = "ubuntu-ansible-ready"
+    vm_id                = "303"
+    vm_name              = "debian-ansible-ready"
 
     # Ressources
-    memory      = 4096
-    sockets     = 2
-    cores       = 2
+    memory      = 2048
+    sockets     = 1
+    cores       = 1
 
     # Behaviour
     boot            = "c"
@@ -52,16 +52,16 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
     # VM OS Settings
     boot_iso {
         type             = "scsi"
-        iso_url          = "https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso"
+        iso_url          = "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-13.4.0-amd64-netinst.iso"
         unmount          = true
         iso_storage_pool = "local"
-        iso_checksum     = "dec49008a71f6098d0bcfc822021f4d042d5f2db279e4d75bdd981304f1ca5d9"
+        iso_checksum     = "0b813535dd76f2ea96eff908c65e8521512c92a0631fd41c95756ffd7d4896dc"
     }
 
     # VM System Settings
     disks {
         type              = "scsi"
-        disk_size         = "5G"
+        disk_size         = "6G"
         storage_pool      = "local"
         format            = "qcow2"
     }
@@ -73,23 +73,29 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
     # PACKER Boot Commands
     http_directory = "http"
     boot_command = [
-        "<enter><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-        "<enter><wait><enter><wait><up><wait><up><wait><enter><wait><down><wait><down><wait><enter><wait5>",
-        "<enter><wait><enter><wait5><wait5><enter><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-        "<down><wait><down><wait><enter><wait><down><wait><down><wait><enter><wait><enter><wait><down><wait><enter><wait>",
-        "ubuntu<down><wait>ubuntu<down><wait>ubuntu<down><wait>${var.root_pwd}<down><wait>${var.root_pwd}<down><wait><enter><wait>",
-        "<enter><wait><enter><wait><down><wait><down><wait><enter><wait>",
-        "<down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait>",
-        "<down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait><down><wait>",
-        "<enter><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<down><wait><enter><wait5><enter><wait><enter><wait><enter><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<enter><wait><enter><wait5>${var.root_pwd}<enter><wait>${var.root_pwd}<enter><wait>debian<enter><wait><enter><wait>${var.root_pwd}<enter><wait>${var.root_pwd}<enter><wait>",
+        "<enter><wait5><wait5><enter><wait><enter><wait><enter><wait><enter><wait><left><wait><enter>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<enter><wait><enter><wait><enter><wait>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<enter><wait5><wait5><wait5><space><wait><down><wait><space><wait><enter>",
         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-        "<down><wait><down><wait><enter><wait><down><wait><down><wait><enter><wait5><wait5><enter><wait>",
         "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
-        "<enter><wait>ubuntu<enter><wait>${var.root_pwd}<enter><wait5>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        "<enter>",
+        "<wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5><wait5>",
+        
+
+        "debian<enter><wait>${var.root_pwd}<enter><wait5>",
 
         "sudo adduser --shell /bin/sh ansible --disabled-password<enter><wait>",
         "${var.root_pwd}<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait>",
@@ -123,6 +129,6 @@ source "proxmox-iso" "ubuntu-ansible-ready" {
 }
 
 build {
-    name    = "ubuntu-ansible-ready"
-    sources = ["source.proxmox-iso.ubuntu-ansible-ready"]
+    name    = "debian-ansible-ready"
+    sources = ["source.proxmox-iso.debian-ansible-ready"]
 }

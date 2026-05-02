@@ -5,12 +5,12 @@ Homeserver is an automation script to convert a machine in a self-hosted proxmox
 
 ## Preparation
 On your server, install debian, preferablly without gui. Do the partitionning depending on your drives. Here is some guidelines for it :
-- Use a 50G partition for the OS
-- NVMe should be used for the swap, and if SSD caching before real SSDs. It may also be used as hot storage, with SSD or HDD as cold storage behind
+- Use a 50G partition for the OS (min 35G)
+- NVMe should be used for the swap, and for SSD caching before real SSDs if needed. It may also be used as hot storage, with SSD or HDD as cold storage behind
 - SSD should be mostly used for hot storage. Swap may be also be considered if you have no NVMe
-- HDD should be used for parity, and cold storage
-> We advise pairing HDDs with SSDs, and as such using part of HDD for the snapraid parity. For xTb of SSD and yTb of HDD, make a HDD partition of (x+y)/2. For 4Tb SSD and 16Tb HDD, that makes (4+16)/2 Tb = 10 Tb HDD partition, leaving 6 Tb for cold storage. This allows redundancy of SSD using cheaper and more durable HDD storage
-> Obviously, this configuration is usefull starting 2 pairs of HDD-SSD only
+- HDD should be used mostly for parity, and for cold storage
+> We advise pairing HDDs with SSDs, and as such using part of HDD for the snapraid parity. For xTb of SSD and yTb of HDD, make a HDD partition of (x+y)/2 for parity. For 4Tb SSD and 16Tb HDD, that makes (4+16)/2 Tb = 10 Tb HDD partition for parity, leaving 6 Tb for cold storage. This allows redundancy of SSD using cheaper and more durable HDD storage. Also, in case of HDD fails where you miss a parity to restore old data, it may be possible to retrieve the hard disk parity partition by dismounting one of the failed drive.
+> This makes even the single-pair viable, but we advice to consider using this system with at least 2 pairs.
 
 ## Installation
 
