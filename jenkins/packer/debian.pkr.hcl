@@ -94,6 +94,10 @@ source "proxmox-iso" "debian-ansible-ready" {
 
         "debian<enter><wait>${var.root_pwd}<enter><wait5>",
 
+        "su -<enter><wait>${var.root_pwd}<enter><wait>",
+        "apt-get update && apt-get install sudo<enter><wait5><wait5><wait5><wait5>",
+        "echo 'debian ALL=(ALL:ALL) ALL' >> /etc/sudoers.d/debian",
+        "exit<enter><wait>"
         "sudo adduser --shell /bin/sh ansible --disabled-password<enter><wait>",
         "${var.root_pwd}<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait>",
         "sudo sed -i 's/ansible:!/ansible:*/' /etc/shadow<enter><wait>",
