@@ -431,10 +431,10 @@ if [[ "$wlan" ]]; then
    done
 fi
 
-if [[ "$(sudo qm status 501 2>/dev/null)" ]]; then
+if [[ "$(sudo qm status 3030 2>/dev/null)" ]]; then
    echo "[~] Destroying old Jenkins agent"
-   sudo qm shutdown 501
-   sudo qm destroy 501
+   sudo qm shutdown 3030
+   sudo qm destroy 3030
    rm ~/.ssh/known_hosts
 fi
 echo "[~] Deploying Jenkins agent"
