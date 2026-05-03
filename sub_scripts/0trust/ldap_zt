@@ -8,7 +8,7 @@ ansible ALL=(root) NOPASSWD: \
    /bin/sed -i s/cfgfile\=.*$/cfgdir\=slapd.d/ /etc/conf.d/slapd, \
    /bin/sed -i s/^olcSuffix\:.*$/olcSuffix\: dc\=home\,dc\=lab/ /etc/openldap/slapd.ldif, \
    /bin/sed -i s/^olcRootDN\:.*$/olcRootDN\: cn\=Manager\,dc\=home\,dc\=lab/ /etc/openldap/slapd.ldif, \
-   /bin/sed -i s/^olcRootPW\:.*$/olcRootPW\: .*/ /etc/openldap/slapd.ldif, \
+   /bin/sed -i s/^olcRootPW\:.*$/olcRootPW\: {SSHA}[0-9a-zA-Z]*/ /etc/openldap/slapd.ldif, \
    \
    /usr/sbin/slapadd -n 0 -F /etc/openldap/slapd.d -l /etc/openldap/slapd.ldif, \
    /sbin/rc-service slapd start, \
