@@ -1,0 +1,3 @@
+# Allow ansible to run only specific commands
+ansible ALL=(root) NOPASSWD: \
+   /sbin/apk add squid suricata clamav

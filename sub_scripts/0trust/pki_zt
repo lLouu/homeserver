@@ -1,0 +1,22 @@
+# Allow ansible to run only specific commands
+ansible ALL=(root) NOPASSWD: \
+   /sbin/apk add --update --virtual .deps --no-cache gnupg, \
+   /sbin/apk del .deps, \
+   \
+   /bin/mkdir /opt/vault, \
+   /bin/mkdir -p /var/lib/vault, \
+   /bin/mv /opt/vault/vault /usr/local/bin/vault, \
+   /bin/rm -R /opt/vault, \
+   \
+   /bin/wget https://releases.hashicorp.com/vault/2.0.0/vault_2.0.0_linux_amd64.zip -O /opt/vault/vault_2.0.0_linux_amd64.zip, \
+   /usr/bin/unzip /opt/vault/vault_2.0.0_linux_amd64.zip -d /opt/vault, \
+   \
+   /usr/sbin/adduser -D -h /var/lib/vault -s /sbin/nologin vault, \
+   /sbin/chown -R vault:vault /etc/conf.d/vault.hcl /var/lib/vault, \
+   /sbin/chmod 750 /etc/vault /etc/conf.d/vault.hcl /var/lib/vault, \
+   /sbin/rc-update add vault default, \
+   /sbin/rc-service vault start, \
+   \
+   /usr/bin/tee /etc/conf.d/vault.hcl, \
+   /usr/bin/tee /etc/init.d/vault, \
+   /usr/bin/tee /root/.keys

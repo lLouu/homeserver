@@ -6,7 +6,7 @@ resource "proxmox_vm_qemu" "instances" {
   # General
   target_node = var.proxmox.node
   name        = var.vms[count.index].name
-  vmid        = var.vms[count.index].id
+  vmid        = var.vms[count.index].network * 1000 + var.vms[count.index].end_ip
   clone       = "${var.vms[count.index].os}-ansible-ready"
   full_clone  = true
   os_type     = "cloud-init"

@@ -15,7 +15,6 @@ variable "proxmox" {
 variable "vms" {
   type = list(object({
     name     = string
-    id       = number
     ram      = number
     sockets  = number
     cores    = number

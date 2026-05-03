@@ -1,0 +1,6 @@
+# Allow ansible to run only specific commands
+ansible ALL=(root) NOPASSWD: \
+   /bin/wget https://cdn.teleport.dev/teleport-v18.7.6-linux-amd64-bin.tar.gz -O /opt/teleport-v18.7.6-linux-amd64-bin.tar.gz, \
+   /bin/tar -xzf /opt/teleport-v18.7.6-linux-amd64-bin.tar.gz, \
+   /opt/teleport/install, \
+   /bin/rm /opt/teleport-v18.7.6-linux-amd64-bin.tar.gz
