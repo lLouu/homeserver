@@ -71,7 +71,7 @@ pipeline {
                      dir("work") {
                         sh '''
                            terraform init
-                           jq -r '.vms[].id' complete.tfvars.json > managed.dat
+                           jq -r '.vms[] | .network * 1000 + .end_ip' complete.tfvars.json > managed.dat
                            for vmid in $(curl -sk -H "Authorization: PVEAPIToken=$PROXMOX_ID=$PROXMOX_SECRET" https://10.1.3.10:8006/api2/json/nodes/proxmox/qemu/ | jq '.data[].vmid'); do
                               if [[ "$vmid" == "500" && ! "$(terraform state list | grep proxmox_vm_qemu.pfsense)" ]]; then terraform import --var-file=$PROXMOX_TFVARS --var-file=pfsense.tfvars.json --var-file=complete.tfvars.json "proxmox_vm_qemu.pfsense" proxmox/qemu/500
                               else
