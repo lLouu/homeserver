@@ -94,7 +94,7 @@ pipeline {
             steps {
                sshagent(credentials: ['ansible-key']) {
                      dir("work") {
-                        sh "ansible-playbook installation.yml -i hosts.yml -u ansible -e \"branch=$BRANCH repository=$REPOSITORY\""
+                        sh "ANSIBLE_HOST_KEY_CHECKING=false ansible-playbook installation.yml -i hosts.yml -u ansible -e \"branch=$BRANCH repository=$REPOSITORY\""
                      }
                }
             }
