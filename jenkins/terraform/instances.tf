@@ -57,6 +57,7 @@ resource "proxmox_vm_qemu" "instances" {
   # TODO : PCI
 
   lifecycle {
+    prevent_destroy = true
     ignore_changes = [
       clone, full_clone
     ]
