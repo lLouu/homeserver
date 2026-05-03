@@ -45,6 +45,7 @@ start_pre() {
     checkpath --directory --owner vault:vault /run
 }
 EOF
+sudo /bin/chmod +x /etc/init.d/vault
 sudo /sbin/rc-update add vault default
 sudo /sbin/rc-service vault start
 
